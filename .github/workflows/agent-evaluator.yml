@@ -1,0 +1,58 @@
+name: Agent PR Evaluator
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Auto-label agent PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const branch = pr.head.ref;
+            
+            // Auto-label if from agent branch
+            if (branch.startsWith('agent/')) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['agent-submission', 'needs-review']
+              });
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `## 🤖 Agent PR Detected\n\nThank you for your contribution! This PR has been automatically labeled for review.\n\n**Evaluation checklist:**\n- [ ] Meets acceptance criteria from linked issue\n- [ ] No regressions\n- [ ] Measurable improvement\n\nReview will happen within 24h. On merge, reward will be logged to the contributor registry.`
+              });
+            }
+      
+      - name: Check PR quality
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            
+            const hasCloses = /closes #\d+/i.test(body);
+            const hasCriteria = body.includes('acceptance criteria') || body.includes('Acceptance Criteria');
+            
+            const score = (hasCloses ? 50 : 0) + (hasCriteria ? 50 : 0);
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `### 📊 Auto-evaluation Score: ${score}/100\n\n- References issue: ${hasCloses ? '✅' : '❌'}\n- Addresses acceptance criteria: ${hasCriteria ? '✅' : '❌'}\n\n${score === 100 ? '🟢 Ready for human review' : '🟡 Please update PR description to reference the issue and acceptance criteria'}`
+            });
