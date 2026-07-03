@@ -1,4 +1,4 @@
-/**
+/** 
  * Content Generation Agent — Issue #5
  * Generates tweet, thread, and blog post from a bounty completion event.
  * Uses Groq Llama (free tier: 6000 req/min) or Gemini Flash (free 1500/day).
@@ -19,7 +19,11 @@ export interface ContentOutput {
   blog_post: string;    // ~300 words
 }
 
-async function callLLM(prompt: string): Promise<string> {
+/** Type for the LLM call function — injectable for testing */
+export type LLMCaller = (prompt: string) => Promise<string>;
+
+/** Default LLM caller using Groq or Gemini */
+export async function defaultLLM(prompt: string): Promise<string> {
   // Try Groq first (faster, higher free limit)
   if (GROQ_API_KEY) {
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -49,7 +53,10 @@ async function callLLM(prompt: string): Promise<string> {
   throw new Error('No LLM API key configured. Set GROQ_API_KEY or GEMINI_API_KEY.');
 }
 
-export async function generateContent(bountyId: string): Promise<ContentOutput> {
+export async function generateContent(
+  bountyId: string,
+  llm: LLMCaller = defaultLLM
+): Promise<ContentOutput> {
   // Fetch bounty details
   const { data: bounty } = await db
     .from('bounty_executions')
@@ -62,18 +69,18 @@ export async function generateContent(bountyId: string): Promise<ContentOutput> 
   const ctx = `Bounty: "${bounty.title}" | Reward: $${bounty.reward_amount} USDC | Repo: ${bounty.repo_owner}/${bounty.repo_name} | PR: #${bounty.pr_number}`;
 
   // Generate tweet
-  const tweet = await callLLM(
+  const tweet = await llm(
     `Write a single tweet (max 280 chars) announcing this completed open-source bounty. Be enthusiastic, include the reward amount and a call to action. No hashtag spam. Context: ${ctx}`
   );
 
   // Generate thread
-  const threadRaw = await callLLM(
+  const threadRaw = await llm(
     `Write a 5-tweet Twitter thread announcing this completed bounty and explaining why open AI bounties matter. Each tweet separated by "---". Context: ${ctx}`
   );
   const thread = threadRaw.split('---').map(t => t.trim()).filter(Boolean).slice(0, 5);
 
   // Generate blog post
-  const blog_post = await callLLM(
+  const blog_post = await llm(
     `Write a 300-word blog post about this completed open-source AI bounty. Include: what was built, why it matters, how others can participate. Professional but accessible tone. Context: ${ctx}`
   );
 
