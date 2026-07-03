@@ -12,6 +12,7 @@ export interface ReferralStore {
   addCredits(userId: string, amount: number): Promise<void>;
   hasConversion(code: string, newUserId: string): Promise<boolean>;
   logReferralConversion(code: string, newUserId: string, details: { outcomeId: string }): Promise<void>;
+  recordSystemEvent(event: { eventType: 'referral_conversion'; userId: string; payload: Record<string, unknown> }): Promise<void>;
   notifyUser(userId: string, message: string): Promise<void>;
 }
 
@@ -68,6 +69,17 @@ export async function processReferral(
     await store.markReferralUsed(code, input.newUserId, rewardCredits);
     await store.addCredits(existing.ownerId, rewardCredits);
     await store.logReferralConversion(code, input.newUserId, { outcomeId: input.outcomeId ?? '' });
+    await store.recordSystemEvent({
+      eventType: 'referral_conversion',
+      userId: existing.ownerId,
+      payload: {
+        referralCode: code,
+        newUserId: input.newUserId,
+        creditsAwarded: rewardCredits,
+        outcomeId: input.outcomeId ?? '',
+        convertedAt: input.convertedAt ?? new Date().toISOString(),
+      },
+    });
 
     await store.notifyUser(existing.ownerId, 'Referral converted: +5 free credits added');
     await store.notifyUser(input.newUserId, 'Welcome bonus granted by successful referral');
@@ -86,11 +98,23 @@ export async function processReferral(
   }
 }
 
+export async function process_referral(
+  store: ReferralStore,
+  referral_code: string,
+  new_user_id: string,
+): Promise<ProcessReferralResult> {
+  return processReferral(store, {
+    referralCode: referral_code,
+    newUserId: new_user_id,
+  });
+}
+
 export function createInMemoryReferralStore() {
   const codes = new Map<string, ReferralCodeRow & { createdAt?: string; updatedAt?: string }>();
   const conversions = new Set<string>();
   const balances = new Map<string, number>();
   const notifications: Array<{ userId: string; message: string }> = [];
+  const systemEvents: Array<{ eventType: 'referral_conversion'; userId: string; payload: Record<string, unknown> }> = [];
 
   return {
     async getReferralCode(code: string): Promise<ReferralCodeRow | null> {
@@ -114,6 +138,9 @@ export function createInMemoryReferralStore() {
     async logReferralConversion(code: string, newUserId: string, _details: { outcomeId: string }): Promise<void> {
       conversions.add(`${code}:${newUserId}`);
     },
+    async recordSystemEvent(event: { eventType: 'referral_conversion'; userId: string; payload: Record<string, unknown> }): Promise<void> {
+      systemEvents.push(event);
+    },
     async notifyUser(userId: string, message: string): Promise<void> {
       notifications.push({ userId, message });
     },
@@ -122,6 +149,7 @@ export function createInMemoryReferralStore() {
       conversions,
       balances,
       notifications,
+      systemEvents,
     },
   } as any;
 }
