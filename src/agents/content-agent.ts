@@ -1,250 +1,104 @@
-declare const process: { env: Record<string, string | undefined> };
+/**
+ * Content Generation Agent — Issue #5
+ * Generates tweet, thread, and blog post from a bounty completion event.
+ * Uses Groq Llama (free tier: 6000 req/min) or Gemini Flash (free 1500/day).
+ */
 
-export interface BountyOutcome {
-  id: string;
-  title: string;
-  scope: string;
-  outcome: string;
-  executionStatus?: string;
-  tags?: string[];
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? '';
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
+
+const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+
+export interface ContentOutput {
+  tweet: string;        // 280 chars max
+  thread: string[];     // 5 tweets
+  blog_post: string;    // ~300 words
 }
 
-export interface GeneratedContent {
-  tweet: string;
-  thread: string[];
-  blog_post: string;
-  social_card: {
-    title: string;
-    subtitle: string;
-    footer: string;
-  };
-}
-
-export interface OutreachRecord extends GeneratedContent {
-  bounty_id: string;
-  content_hash: string;
-  llm_provider: string;
-  created_at: string;
-}
-
-export interface ContentStore {
-  getBountyOutcome(bountyId: string): Promise<BountyOutcome | null>;
-  upsertOutreachSent(record: OutreachRecord): Promise<void>;
-}
-
-export interface FreeLLM {
-  provider: 'groq' | 'gemini' | 'ollama' | 'mock';
-  generate(prompt: string): Promise<string>;
-}
-
-export interface ContentAgentOptions {
-  store: ContentStore;
-  llm?: FreeLLM;
-  now?: () => Date;
-}
-
-export function stableHash(input: string): string {
-  let hash = 2166136261;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-    hash >>>= 0;
-  }
-  return hash.toString(16).padStart(8, '0');
-}
-
-function words(text: string): string[] {
-  return text.trim().split(/\s+/).filter(Boolean);
-}
-
-function clampTweet(text: string): string {
-  const normalized = text.replace(/\s+/g, ' ').trim();
-  if (normalized.length <= 280) return normalized;
-  return `${normalized.slice(0, 277).trimEnd()}...`;
-}
-
-function normalizeThread(lines: string[], fallback: BountyOutcome): string[] {
-  const cleaned = lines.map((line) => line.replace(/^\d+\/?\s*/, '').trim()).filter(Boolean);
-  const base = cleaned.length > 0 ? cleaned : [
-    `${fallback.title} shipped from bounty work.`,
-    `Scope: ${fallback.scope}`,
-    `Outcome: ${fallback.outcome}`,
-    'Impact is ready to be measured through the growth engine.',
-    `Bounty id: ${fallback.id}`,
-  ];
-
-  return Array.from({ length: 5 }, (_, index) => clampTweet(`${index + 1}/ ${base[index % base.length]}`));
-}
-
-function ensureBlogLength(text: string, bounty: BountyOutcome): string {
-  const base = text.trim() || `${bounty.title}\n\n${bounty.scope}\n\n${bounty.outcome}`;
-  const filler = [
-    `The completed bounty focused on ${bounty.scope}.`,
-    `The implementation outcome was ${bounty.outcome}.`,
-    'This gives the growth system a reusable signal that can be measured after merge.',
-    'The next useful step is to compare conversion, reach, or agent throughput before and after the change.',
-  ];
-
-  const parts = [base];
-  let cursor = 0;
-  while (words(parts.join(' ')).length < 260) {
-    parts.push(filler[cursor % filler.length]);
-    cursor += 1;
+async function callLLM(prompt: string): Promise<string> {
+  // Try Groq first (faster, higher free limit)
+  if (GROQ_API_KEY) {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama3-8b-8192',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1024
+      })
+    });
+    const data = await r.json();
+    return data.choices?.[0]?.message?.content ?? '';
   }
 
-  return words(parts.join('\n\n')).slice(0, 330).join(' ');
-}
-
-function extractJsonBlock(text: string): Partial<GeneratedContent> | null {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
-  const candidate = fenced ?? text.match(/\{[\s\S]*\}/)?.[0];
-  if (!candidate) return null;
-
-  try {
-    return JSON.parse(candidate) as Partial<GeneratedContent>;
-  } catch {
-    return null;
-  }
-}
-
-function buildPrompt(bounty: BountyOutcome): string {
-  return [
-    'Generate unique outreach content for a completed open-source bounty.',
-    'Return strict JSON with keys: tweet, thread, blog_post, social_card.',
-    'tweet must be <= 280 chars.',
-    'thread must be exactly 5 short tweet strings.',
-    'blog_post should be around 300 words.',
-    'social_card must include title, subtitle, footer.',
-    `Bounty id: ${bounty.id}`,
-    `Title: ${bounty.title}`,
-    `Scope: ${bounty.scope}`,
-    `Outcome: ${bounty.outcome}`,
-  ].join('\n');
-}
-
-function fallbackContent(bounty: BountyOutcome): GeneratedContent {
-  const fingerprint = stableHash(`${bounty.id}:${bounty.title}:${bounty.scope}:${bounty.outcome}`).slice(0, 6);
-  const tweet = clampTweet(`${bounty.title} shipped: ${bounty.outcome}. Proof ${fingerprint}`);
-
-  return {
-    tweet,
-    thread: normalizeThread([], bounty),
-    blog_post: ensureBlogLength('', bounty),
-    social_card: {
-      title: bounty.title.slice(0, 72),
-      subtitle: bounty.outcome.slice(0, 112),
-      footer: `Bounty ${bounty.id} / ${fingerprint}`,
-    },
-  };
-}
-
-function normalizeGenerated(raw: Partial<GeneratedContent> | null, bounty: BountyOutcome): GeneratedContent {
-  const fallback = fallbackContent(bounty);
-  const social = raw?.social_card ?? fallback.social_card;
-
-  return {
-    tweet: clampTweet(String(raw?.tweet ?? fallback.tweet)),
-    thread: normalizeThread(Array.isArray(raw?.thread) ? raw.thread.map(String) : [], bounty),
-    blog_post: ensureBlogLength(String(raw?.blog_post ?? fallback.blog_post), bounty),
-    social_card: {
-      title: String(social.title ?? fallback.social_card.title).slice(0, 72),
-      subtitle: String(social.subtitle ?? fallback.social_card.subtitle).slice(0, 112),
-      footer: String(social.footer ?? fallback.social_card.footer).slice(0, 80),
-    },
-  };
-}
-
-export function createMockLLM(response?: string): FreeLLM {
-  return {
-    provider: 'mock',
-    async generate() {
-      return response ?? '';
-    },
-  };
-}
-
-export async function createFreeLLMFromEnv(env: Record<string, string | undefined> = process.env): Promise<FreeLLM> {
-  if (env.GROQ_API_KEY) {
-    return {
-      provider: 'groq',
-      async generate(prompt: string) {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${env.GROQ_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: env.GROQ_MODEL ?? 'llama-3.1-8b-instant',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7,
-          }),
-        });
-        const json = await response.json();
-        return String(json?.choices?.[0]?.message?.content ?? '');
-      },
-    };
+  // Fallback: Gemini Flash
+  if (GEMINI_API_KEY) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    const data = await r.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   }
 
-  if (env.GEMINI_API_KEY) {
-    return {
-      provider: 'gemini',
-      async generate(prompt: string) {
-        const model = env.GEMINI_MODEL ?? 'gemini-1.5-flash';
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        });
-        const json = await response.json();
-        return String(json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
-      },
-    };
-  }
-
-  return {
-    provider: 'ollama',
-    async generate(prompt: string) {
-      const baseUrl = env.OLLAMA_BASE_URL ?? 'http://127.0.0.1:11434';
-      const response = await fetch(`${baseUrl}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: env.OLLAMA_MODEL ?? 'llama3.1',
-          prompt,
-          stream: false,
-        }),
-      });
-      const json = await response.json();
-      return String(json?.response ?? '');
-    },
-  };
+  throw new Error('No LLM API key configured. Set GROQ_API_KEY or GEMINI_API_KEY.');
 }
 
-export async function generate_content(bounty_id: string, options: ContentAgentOptions): Promise<GeneratedContent> {
-  const bounty = await options.store.getBountyOutcome(bounty_id);
-  if (!bounty) {
-    throw new Error(`Bounty not found: ${bounty_id}`);
-  }
+export async function generateContent(bountyId: string): Promise<ContentOutput> {
+  // Fetch bounty details
+  const { data: bounty } = await db
+    .from('bounty_executions')
+    .select('title, description, reward_amount, repo_owner, repo_name, pr_number')
+    .eq('id', bountyId)
+    .maybeSingle();
 
-  const llm = options.llm ?? await createFreeLLMFromEnv();
-  let llmText = '';
-  try {
-    llmText = await llm.generate(buildPrompt(bounty));
-  } catch {
-    llmText = '';
-  }
+  if (!bounty) throw new Error(`Bounty not found: ${bountyId}`);
 
-  const generated = normalizeGenerated(extractJsonBlock(llmText), bounty);
-  const content_hash = stableHash(`${bounty.id}:${generated.tweet}:${generated.thread.join('|')}:${generated.blog_post}`);
+  const ctx = `Bounty: "${bounty.title}" | Reward: $${bounty.reward_amount} USDC | Repo: ${bounty.repo_owner}/${bounty.repo_name} | PR: #${bounty.pr_number}`;
 
-  await options.store.upsertOutreachSent({
-    ...generated,
-    bounty_id,
-    content_hash,
-    llm_provider: llm.provider,
-    created_at: (options.now ?? (() => new Date()))().toISOString(),
+  // Generate tweet
+  const tweet = await callLLM(
+    `Write a single tweet (max 280 chars) announcing this completed open-source bounty. Be enthusiastic, include the reward amount and a call to action. No hashtag spam. Context: ${ctx}`
+  );
+
+  // Generate thread
+  const threadRaw = await callLLM(
+    `Write a 5-tweet Twitter thread announcing this completed bounty and explaining why open AI bounties matter. Each tweet separated by "---". Context: ${ctx}`
+  );
+  const thread = threadRaw.split('---').map(t => t.trim()).filter(Boolean).slice(0, 5);
+
+  // Generate blog post
+  const blog_post = await callLLM(
+    `Write a 300-word blog post about this completed open-source AI bounty. Include: what was built, why it matters, how others can participate. Professional but accessible tone. Context: ${ctx}`
+  );
+
+  // Store in outreach_sent
+  await db.from('outreach_sent').insert({
+    bounty_id: bountyId,
+    channel: 'content_agent',
+    content: JSON.stringify({ tweet, thread, blog_post }),
+    sent_at: new Date().toISOString()
   });
 
-  return generated;
+  return { tweet: tweet.slice(0, 280), thread, blog_post };
 }
+
+// Edge Function entry point
+Deno.serve(async (req: Request) => {
+  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+  try {
+    const { bounty_id } = await req.json();
+    if (!bounty_id) return new Response(JSON.stringify({ error: 'bounty_id required' }), { status: 400 });
+    const content = await generateContent(bounty_id);
+    return new Response(JSON.stringify({ ok: true, content }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+  }
+});
