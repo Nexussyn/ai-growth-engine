@@ -13,6 +13,10 @@ export interface UpsellResult {
   promptText?: string;
 }
 
+export const UPSELL_HEADER_NAME = 'X-Upsell-Prompt';
+export const UPSELL_REASON_HEADER_NAME = 'X-Upsell-Prompt-Reason';
+export const UPSELL_VARIANT_HEADER_NAME = 'X-Upsell-Prompt-Variant';
+
 const DEFAULT_FREE_LIMIT = 10;
 
 function thresholdFor(total: number): number {
@@ -45,7 +49,7 @@ export function shouldTriggerUpsell(input: UpsellInput): UpsellResult {
       triggered: true,
       reason: 'free usage threshold reached at 50%',
       variant,
-      promptHeader: 'X-Upsell-Prompt: true',
+      promptHeader: `${UPSELL_HEADER_NAME}: true`,
       promptText: promptTextFor(variant),
     };
   }
@@ -59,9 +63,9 @@ export function generateMiddlewarePayload(input: UpsellInput) {
 
   return {
     headers: {
-      'X-Upsell-Prompt': 'true',
-      'X-Upsell-Prompt-Reason': decision.reason,
-      'X-Upsell-Prompt-Variant': decision.variant ?? 'priority',
+      [UPSELL_HEADER_NAME]: 'true',
+      [UPSELL_REASON_HEADER_NAME]: decision.reason,
+      [UPSELL_VARIANT_HEADER_NAME]: decision.variant ?? 'priority',
     },
     body: {
       ...input,
