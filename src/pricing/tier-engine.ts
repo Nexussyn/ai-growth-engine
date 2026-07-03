@@ -11,6 +11,12 @@ export interface TierResult {
   callsInTier: number;
 }
 
+function assertValidCallCount(callCount: number): void {
+  if (!Number.isInteger(callCount) || callCount < 0) {
+    throw new Error('callCount must be a non-negative integer');
+  }
+}
+
 /**
  * Returns the price per call based on total call count and priority flag.
  * - Tier 1 (Free):     calls 1–50     → $0.00
@@ -19,6 +25,8 @@ export interface TierResult {
  * - Tier 4 (Priority): priority=true → $0.10
  */
 export function getTierPrice(callCount: number, priorityFlag = false): TierResult {
+  assertValidCallCount(callCount);
+
   if (priorityFlag) {
     return { tier: 'priority', pricePerCall: 0.10, callsInTier: 1 };
   }
@@ -32,9 +40,19 @@ export function getTierPrice(callCount: number, priorityFlag = false): TierResul
 }
 
 /**
+ * Snake_case helper requested by the issue acceptance criteria.
+ */
+export function get_tier_price(call_count: number, priority_flag = false): number {
+  return getTierPrice(call_count, priority_flag).pricePerCall;
+}
+
+/**
  * Calculates total cost for a batch of calls.
  */
 export function calculateBatchCost(startCount: number, numCalls: number, priority = false): number {
+  assertValidCallCount(startCount);
+  assertValidCallCount(numCalls);
+
   let total = 0;
   for (let i = 0; i < numCalls; i++) {
     total += getTierPrice(startCount + i, priority).pricePerCall;
