@@ -1,45 +1,43 @@
-export type PriceTier = 'free' | 'standard' | 'premium' | 'priority';
+/**
+ * Tiered Pricing Engine — Issue #1
+ * Implements 4-tier pricing for x402 API calls
+ */
 
-export interface TierPriceInput {
-  callCount: number;
-  priority?: boolean;
+export type Tier = 'free' | 'standard' | 'premium' | 'priority';
+
+export interface TierResult {
+  tier: Tier;
+  pricePerCall: number; // in USDC
+  callsInTier: number;
 }
 
-export interface TierPriceResult {
-  tier: PriceTier;
-  priceUsd: number;
-}
-
-const TIERS: ReadonlyArray<{ tier: PriceTier; priceUsd: number; min: number; max: number | null }> = [
-  { tier: 'free', priceUsd: 0, min: 0, max: 50 },
-  { tier: 'standard', priceUsd: 0.01, min: 51, max: 500 },
-  { tier: 'premium', priceUsd: 0.03, min: 501, max: null },
-];
-
-export function getTierPrice(input: TierPriceInput): TierPriceResult {
-  const callCount = Number(input.callCount);
-
-  if (!Number.isInteger(callCount) || callCount < 0) {
-    throw new Error('callCount must be a non-negative integer');
+/**
+ * Returns the price per call based on total call count and priority flag.
+ * - Tier 1 (Free):     calls 1–50     → $0.00
+ * - Tier 2 (Standard): calls 51–500  → $0.01
+ * - Tier 3 (Premium):  calls 500+    → $0.03
+ * - Tier 4 (Priority): priority=true → $0.10
+ */
+export function getTierPrice(callCount: number, priorityFlag = false): TierResult {
+  if (priorityFlag) {
+    return { tier: 'priority', pricePerCall: 0.10, callsInTier: 1 };
   }
-
-  if (input.priority) {
-    return { tier: 'priority', priceUsd: 0.1 };
+  if (callCount <= 50) {
+    return { tier: 'free', pricePerCall: 0.00, callsInTier: 50 - callCount + 1 };
   }
-
-  for (const item of TIERS) {
-    if (callCount >= item.min && (item.max === null || callCount <= item.max)) {
-      return { tier: item.tier, priceUsd: item.priceUsd };
-    }
+  if (callCount <= 500) {
+    return { tier: 'standard', pricePerCall: 0.01, callsInTier: 500 - callCount + 1 };
   }
-
-  return { tier: 'premium', priceUsd: 0.03 };
+  return { tier: 'premium', pricePerCall: 0.03, callsInTier: Infinity };
 }
 
-export function getTier(callCount: number, priority?: boolean): PriceTier {
-  return getTierPrice({ callCount, priority }).tier;
-}
-
-export function getPrice(callCount: number, priority?: boolean): number {
-  return getTierPrice({ callCount, priority }).priceUsd;
+/**
+ * Calculates total cost for a batch of calls.
+ */
+export function calculateBatchCost(startCount: number, numCalls: number, priority = false): number {
+  let total = 0;
+  for (let i = 0; i < numCalls; i++) {
+    total += getTierPrice(startCount + i, priority).pricePerCall;
+  }
+  return Math.round(total * 1e6) / 1e6; // round to 6 decimals (USDC precision)
 }
