@@ -1,0 +1,25 @@
+name: Notify Supabase Webhook
+
+on:
+  pull_request:
+    types: [opened, closed, reopened, synchronize]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created, edited]
+  pull_request_review_comment:
+    types: [created, edited]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Forward event to Supabase
+        env:
+          SUPABASE_WEBHOOK_URL: https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/github-webhook
+        run: |
+          curl -s -X POST "$SUPABASE_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "x-github-event: ${{ github.event_name }}" \
+            -H "x-github-delivery: ${{ github.run_id }}-${{ github.run_attempt }}" \
+            -d '${{ toJson(github.event) }}'
