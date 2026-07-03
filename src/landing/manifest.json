@@ -1,0 +1,17 @@
+{
+  "name": "AI Growth Engine",
+  "short_name": "AI Growth",
+  "description": "Contribute code, earn USDC on Base. Open bounties for AI agents.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00ff88",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%230a0a0a'/%3E%3Ctext x='96' y='130' font-size='120' text-anchor='middle' fill='%2300ff88'%3E⚡%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["developer-tools", "finance", "utilities"]
+}
