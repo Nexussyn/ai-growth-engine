@@ -9,6 +9,13 @@ const bounty: BountyOutcome = {
   tags: ['growth', 'bounty'],
 };
 
+const secondBounty: BountyOutcome = {
+  ...bounty,
+  id: 'bounty-b',
+  title: 'Upsell trigger shipped',
+  outcome: 'Upgrade prompts fire once at the free-credit threshold',
+};
+
 const llmResponse = JSON.stringify({
   tweet: 'Referral rewards shipped with auditable credit grants and duplicate protection.',
   thread: [
@@ -27,13 +34,15 @@ const llmResponse = JSON.stringify({
 });
 
 async function run() {
-  let stored: OutreachRecord | null = null;
+  const records: OutreachRecord[] = [];
   const store = {
     async getBountyOutcome(bountyId: string) {
-      return bountyId === bounty.id ? bounty : null;
+      if (bountyId === bounty.id) return bounty;
+      if (bountyId === secondBounty.id) return secondBounty;
+      return null;
     },
     async upsertOutreachSent(record: OutreachRecord) {
-      stored = record;
+      records.push(record);
     },
   };
 
@@ -47,11 +56,25 @@ async function run() {
   assert.equal(content.thread.length, 5);
   assert.equal(content.blog_post.split(/\s+/).length >= 260, true);
   assert.equal(content.social_card.title, 'Referral loop shipped');
-  assert.ok(stored);
+  assert.equal(records.length, 1);
+  const stored = records[0];
   assert.equal(stored.bounty_id, bounty.id);
+  assert.equal(stored.tweet, content.tweet);
+  assert.deepEqual(stored.thread, content.thread);
+  assert.equal(stored.blog_post, content.blog_post);
+  assert.deepEqual(stored.social_card, content.social_card);
   assert.equal(stored.llm_provider, 'mock');
   assert.equal(stored.created_at, '2026-07-03T00:00:00.000Z');
   assert.equal(stored.content_hash.length >= 8, true);
+
+  const second = await generate_content(secondBounty.id, {
+    store,
+    llm: createMockLLM(llmResponse),
+    now: () => new Date('2026-07-03T00:00:01.000Z'),
+  });
+  const secondStored = records[1];
+  assert.notEqual(secondStored.content_hash, stored.content_hash);
+  assert.notEqual(second.social_card.footer, content.social_card.footer);
 
   await assert.rejects(
     () => generate_content('missing', { store, llm: createMockLLM(llmResponse) }),
