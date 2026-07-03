@@ -266,7 +266,12 @@ async function createSupabaseStore(env: EnvSource = getRuntimeEnv()): Promise<Co
   }
 
   const { createClient } = await import('jsr:@supabase/supabase-js@2');
-  const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } }) as SupabaseClient;
+  const createSupabaseClient = createClient as unknown as (
+    url: string,
+    key: string,
+    options: { auth: { persistSession: boolean } },
+  ) => SupabaseClient;
+  const db = createSupabaseClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
   return {
     async getBountyOutcome(bountyId: string) {
@@ -341,8 +346,11 @@ export async function generateContent(bountyId: string): Promise<ContentOutput> 
   return generate_content(bountyId);
 }
 
-if (typeof Deno !== 'undefined' && Deno.serve) {
-  Deno.serve(async (req: Request) => {
+const denoServe = typeof Deno !== 'undefined' ? Deno.serve : undefined;
+const shouldStartServer = denoServe && (import.meta as ImportMeta & { main?: boolean }).main;
+
+if (shouldStartServer && denoServe) {
+  denoServe(async (req: Request) => {
     if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
     try {
       const { bounty_id } = await req.json();
