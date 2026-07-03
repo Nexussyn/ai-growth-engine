@@ -20,6 +20,12 @@ export interface ContentOutput {
   tweet: string;
   thread: string[];
   blog_post: string;
+  social_card: {
+    title: string;
+    subtitle: string;
+    footer: string;
+  };
+  content_hash: string;
 }
 
 export interface LLMProvider {
@@ -46,6 +52,31 @@ function bountyContext(b: BountyRecord): string {
     `PR: #${b.pr_number}`,
     `Scope: ${b.description.slice(0, 200)}`,
   ].join(' | ');
+}
+
+/** FNV-1a — stable fingerprint for dedup / uniqueness checks */
+export function stableHash(input: string): string {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+    hash >>>= 0;
+  }
+  return hash.toString(16).padStart(8, '0');
+}
+
+function socialCard(b: BountyRecord): ContentOutput['social_card'] {
+  return {
+    title: b.title.slice(0, 80),
+    subtitle: `$${b.reward_amount} USDC — ${b.repo_owner}/${b.repo_name}`,
+    footer: `PR #${b.pr_number} merged on Base`,
+  };
+}
+
+function contentFingerprint(b: BountyRecord, content: Omit<ContentOutput, 'content_hash'>): string {
+  return stableHash(
+    [b.id, b.title, b.pr_number, content.tweet, content.thread.join('|'), content.blog_post].join('::'),
+  );
 }
 
 function clampTweet(text: string): string {
@@ -104,11 +135,13 @@ export async function buildContent(
     `Write a ~300 word blog post: what was built, why it matters, how to participate. ${ctx}`,
   );
 
-  return {
+  const base = {
     tweet: clampTweet(tweetRaw),
     thread: parseThread(threadRaw, bounty),
     blog_post: ensureBlogWords(blogRaw, bounty),
+    social_card: socialCard(bounty),
   };
+  return { ...base, content_hash: contentFingerprint(bounty, base) };
 }
 
 let _db: SupabaseClient | null = null;

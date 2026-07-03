@@ -3,6 +3,7 @@ import {
   buildContent,
   generateContent,
   generate_content,
+  stableHash,
   type BountyRecord,
   type ContentStore,
   type LLMProvider,
@@ -62,6 +63,9 @@ Deno.test('generateContent returns tweet, thread, blog_post', async () => {
   assertEquals(out.thread.length, 5);
   assertEquals(out.thread.every((t) => t.length <= 280), true);
   assertEquals(out.blog_post.split(/\s+/).length >= 260, true);
+  assertEquals(typeof out.social_card.title, 'string');
+  assertEquals(typeof out.content_hash, 'string');
+  assertEquals(out.content_hash.length, 8);
 });
 
 Deno.test('generateContent stores payload in outreach_sent', async () => {
@@ -99,6 +103,18 @@ Deno.test('thread parser normalizes fewer than 5 LLM segments', async () => {
   assertEquals(out.thread[0].startsWith('1/'), true);
 });
 
+Deno.test('content_hash differs per bounty id with identical LLM output', async () => {
+  const llm = mockLLM({});
+  const a = await buildContent(mockBounty('alpha', 'Alpha task'), llm);
+  const b = await buildContent(mockBounty('beta', 'Beta task'), llm);
+  assertNotEquals(a.content_hash, b.content_hash);
+});
+
+Deno.test('stableHash is deterministic', () => {
+  assertEquals(stableHash('hello'), stableHash('hello'));
+  assertNotEquals(stableHash('hello'), stableHash('world'));
+});
+
 Deno.test('generate_content snake_case alias matches generateContent', async () => {
   const store = memoryStore({ 'b-snake': mockBounty('b-snake', 'Snake case export') });
   const llm = mockLLM({});
@@ -107,4 +123,6 @@ Deno.test('generate_content snake_case alias matches generateContent', async () 
   assertEquals(snake.tweet, camel.tweet);
   assertEquals(snake.thread.join('|'), camel.thread.join('|'));
   assertEquals(snake.blog_post, camel.blog_post);
+  assertEquals(snake.content_hash, camel.content_hash);
+  assertEquals(snake.social_card.title, camel.social_card.title);
 });
