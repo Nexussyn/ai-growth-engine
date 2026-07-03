@@ -21,13 +21,19 @@ CREATE OR REPLACE FUNCTION public.mark_upsell_trigger_if_needed(p_user_id text, 
 RETURNS boolean
 LANGUAGE plpgsql
 AS $$
+DECLARE
+  inserted boolean;
 BEGIN
   IF p_call_count = 5 THEN
-    INSERT INTO public.upsell_triggers (user_id, trigger_type, shown_at, trigger_payload)
-    VALUES (p_user_id, 'free-credits-50%', now(), jsonb_build_object('call_count', p_call_count, 'threshold', 5))
-    ON CONFLICT (user_id, trigger_type) DO NOTHING;
+    WITH created AS (
+      INSERT INTO public.upsell_triggers (user_id, trigger_type, shown_at, trigger_payload)
+      VALUES (p_user_id, 'free-credits-50%', now(), jsonb_build_object('call_count', p_call_count, 'threshold', 5))
+      ON CONFLICT (user_id, trigger_type) DO NOTHING
+      RETURNING 1
+    )
+    SELECT EXISTS (SELECT 1 FROM created) INTO inserted;
 
-    RETURN TRUE;
+    RETURN inserted;
   END IF;
 
   RETURN FALSE;

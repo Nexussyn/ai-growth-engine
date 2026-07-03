@@ -10,6 +10,7 @@ const hit = shouldTriggerUpsell({
 
 assert.equal(hit.triggered, true);
 assert.equal(!!hit.promptHeader, true);
+assert.ok(hit.variant);
 
 const miss = shouldTriggerUpsell({
   userId: 'u2',
@@ -19,6 +20,15 @@ const miss = shouldTriggerUpsell({
 });
 
 assert.equal(miss.triggered, false);
+
+const afterThreshold = shouldTriggerUpsell({
+  userId: 'u2',
+  freeCreditsTotal: 10,
+  freeCreditsUsed: 6,
+  shownPrompt: false,
+});
+
+assert.equal(afterThreshold.triggered, false);
 
 const already = shouldTriggerUpsell({
   userId: 'u1',
@@ -36,11 +46,17 @@ const headers = generateMiddlewarePayload({
 });
 
 assert.equal(headers.headers['X-Upsell-Prompt'], 'true');
+assert.ok(headers.headers['X-Upsell-Prompt-Variant']);
 
 const store = new SimpleUpsellStore();
 
-(async () => {
+async function run() {
   await store.markAsShown('u9');
   assert.equal(await store.hasBeenShown('u9'), true);
   assert.equal(await store.hasBeenShown('u10'), false);
-})();
+}
+
+run().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

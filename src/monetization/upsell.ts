@@ -8,44 +8,45 @@ export interface UpsellInput {
 export interface UpsellResult {
   triggered: boolean;
   reason: string;
+  variant?: 'priority' | 'savings';
   promptHeader?: string;
   promptText?: string;
 }
 
 const DEFAULT_FREE_LIMIT = 10;
 
-function percentOfLimit(used: number, total: number): number {
-  if (!Number.isFinite(used) || !Number.isFinite(total) || total <= 0) {
-    return 0;
-  }
+function thresholdFor(total: number): number {
+  if (!Number.isInteger(total) || total <= 0) return DEFAULT_FREE_LIMIT / 2;
+  return Math.ceil(total / 2);
+}
 
-  const value = (used / total) * 100;
-  return Number(value.toFixed(2));
+function promptVariantFor(userId: string): 'priority' | 'savings' {
+  const sum = [...userId].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return sum % 2 === 0 ? 'priority' : 'savings';
+}
+
+function promptTextFor(variant: 'priority' | 'savings'): string {
+  if (variant === 'priority') {
+    return 'You reached 50% of free credits. Upgrade now for priority handling and fewer queue delays.';
+  }
+  return 'Your free quota is half used. Upgrade now to keep momentum before your remaining credits run out.';
 }
 
 export function shouldTriggerUpsell(input: UpsellInput): UpsellResult {
-  const callsLeft = Math.max(0, input.freeCreditsTotal - input.freeCreditsUsed);
-  const usedRatio = percentOfLimit(input.freeCreditsUsed, input.freeCreditsTotal);
+  const threshold = thresholdFor(input.freeCreditsTotal);
 
   if (input.shownPrompt) {
     return { triggered: false, reason: 'already_shown' };
   }
 
-  if (input.freeCreditsUsed === 5 && callsLeft === 5) {
+  if (input.freeCreditsUsed === threshold) {
+    const variant = promptVariantFor(input.userId);
     return {
       triggered: true,
       reason: 'free usage threshold reached at 50%',
+      variant,
       promptHeader: 'X-Upsell-Prompt: true',
-      promptText: 'You reached 50% of free credits. Upgrade now for higher priority and better pricing.',
-    };
-  }
-
-  if (usedRatio >= 50 && input.freeCreditsUsed >= DEFAULT_FREE_LIMIT / 2) {
-    return {
-      triggered: true,
-      reason: 'usage >= 50% of free credits',
-      promptHeader: 'X-Upsell-Prompt: true',
-      promptText: 'Your free quota is half used. Unlock priority handling with Premium plan.',
+      promptText: promptTextFor(variant),
     };
   }
 
@@ -60,6 +61,7 @@ export function generateMiddlewarePayload(input: UpsellInput) {
     headers: {
       'X-Upsell-Prompt': 'true',
       'X-Upsell-Prompt-Reason': decision.reason,
+      'X-Upsell-Prompt-Variant': decision.variant ?? 'priority',
     },
     body: {
       ...input,
