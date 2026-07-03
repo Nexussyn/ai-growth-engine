@@ -18,30 +18,54 @@ CREATE TABLE IF NOT EXISTS referral_conversions (
   UNIQUE(referral_code, new_user_id)
 );
 
+CREATE TABLE IF NOT EXISTS system_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type TEXT NOT NULL,
+  user_id TEXT,
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS system_events_event_type_created_at_idx
+  ON system_events (event_type, created_at DESC);
+
 CREATE OR REPLACE FUNCTION process_referral(p_code TEXT, p_new_user_id TEXT)
 RETURNS JSONB AS $$
 DECLARE
   v_owner_id TEXT;
   v_credits INT := 5;
+  v_conversion_id UUID;
 BEGIN
-  -- Idempotency check
-  IF EXISTS (SELECT 1 FROM referral_conversions WHERE referral_code = p_code AND new_user_id = p_new_user_id) THEN
-    RETURN jsonb_build_object('status', 'already_processed');
-  END IF;
-
   SELECT owner_id INTO v_owner_id FROM referral_codes WHERE code = p_code;
   IF NOT FOUND THEN RETURN jsonb_build_object('status', 'invalid_code'); END IF;
+  IF v_owner_id = p_new_user_id THEN RETURN jsonb_build_object('status', 'self_referral_blocked'); END IF;
 
-  -- Log conversion
-  INSERT INTO referral_conversions (referral_code, new_user_id) VALUES (p_code, p_new_user_id);
+  -- Log conversion atomically for idempotency under concurrent retries.
+  INSERT INTO referral_conversions (referral_code, new_user_id)
+  VALUES (p_code, p_new_user_id)
+  ON CONFLICT (referral_code, new_user_id) DO NOTHING
+  RETURNING id INTO v_conversion_id;
+
+  IF v_conversion_id IS NULL THEN
+    RETURN jsonb_build_object('status', 'already_processed');
+  END IF;
 
   -- Award credits
   UPDATE referral_codes SET uses = uses + 1, credits_awarded = credits_awarded + v_credits WHERE code = p_code;
 
   -- Log event
-  INSERT INTO system_events (event_type, payload, created_at)
-  VALUES ('referral_conversion', jsonb_build_object('code', p_code, 'new_user', p_new_user_id, 'credits', v_credits), NOW());
+  INSERT INTO system_events (event_type, user_id, payload, created_at)
+  VALUES (
+    'referral_conversion',
+    v_owner_id,
+    jsonb_build_object(
+      'referral_code', p_code,
+      'new_user_id', p_new_user_id,
+      'credits_awarded', v_credits
+    ),
+    NOW()
+  );
 
-  RETURN jsonb_build_object('status', 'ok', 'credits_awarded', v_credits, 'owner_id', v_owner_id);
+  RETURN jsonb_build_object('status', 'ok', 'credits_awarded', v_credits);
 END;
 $$ LANGUAGE plpgsql;
