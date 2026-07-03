@@ -38,9 +38,16 @@ export interface ContentStore {
   saveOutreach(bountyId: string, content: ContentOutput): Promise<void>;
 }
 
+export interface TwitterPoster {
+  post(text: string): Promise<void>;
+}
+
 export interface GenerateOptions {
   store?: ContentStore;
   llm?: LLMProvider;
+  /** When true (default), post tweet+thread if Twitter credentials exist in env */
+  auto_post_twitter?: boolean;
+  twitter?: TwitterPoster | null;
 }
 
 function bountyContext(b: BountyRecord): string {
@@ -178,6 +185,35 @@ export function supabaseStore(db?: SupabaseClient): ContentStore {
   };
 }
 
+export function twitterFromEnv(): TwitterPoster | null {
+  const token = Deno.env.get('TWITTER_BEARER_TOKEN') ?? Deno.env.get('X_API_BEARER');
+  if (!token) return null;
+  return {
+    async post(text) {
+      const r = await fetch('https://api.twitter.com/2/tweets', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.replace(/^\d+\/\s*/, '') }),
+      });
+      if (!r.ok) throw new Error(`Twitter API ${r.status}: ${await r.text()}`);
+    },
+  };
+}
+
+/** Issue scope: optionally post when credentials are configured */
+export async function postToTwitterIfConfigured(
+  content: ContentOutput,
+  poster?: TwitterPoster | null,
+): Promise<boolean> {
+  const tw = poster === undefined ? twitterFromEnv() : poster;
+  if (!tw) return false;
+  await tw.post(content.tweet);
+  for (const segment of content.thread.slice(1)) {
+    await tw.post(segment);
+  }
+  return true;
+}
+
 export function freeLLMFromEnv(): LLMProvider {
   const groq = Deno.env.get('GROQ_API_KEY');
   if (groq) {
@@ -251,6 +287,12 @@ export async function generateContent(
 
   const content = await buildContent(bounty, llm);
   await store.saveOutreach(bountyId, content);
+
+  const autoPost = options.auto_post_twitter !== false;
+  if (autoPost && Deno.env.get('TWITTER_AUTO_POST') !== '0') {
+    await postToTwitterIfConfigured(content, options.twitter).catch(() => false);
+  }
+
   return content;
 }
 

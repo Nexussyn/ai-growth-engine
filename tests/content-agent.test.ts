@@ -3,10 +3,12 @@ import {
   buildContent,
   generateContent,
   generate_content,
+  postToTwitterIfConfigured,
   stableHash,
   type BountyRecord,
   type ContentStore,
   type LLMProvider,
+  type TwitterPoster,
 } from '../src/agents/content-agent.ts';
 
 const mockBounty = (id: string, title: string): BountyRecord => ({
@@ -118,11 +120,24 @@ Deno.test('stableHash is deterministic', () => {
 Deno.test('generate_content snake_case alias matches generateContent', async () => {
   const store = memoryStore({ 'b-snake': mockBounty('b-snake', 'Snake case export') });
   const llm = mockLLM({});
-  const camel = await generateContent('b-snake', { store, llm });
-  const snake = await generate_content('b-snake', { store, llm });
+  const camel = await generateContent('b-snake', { store, llm, auto_post_twitter: false });
+  const snake = await generate_content('b-snake', { store, llm, auto_post_twitter: false });
   assertEquals(snake.tweet, camel.tweet);
   assertEquals(snake.thread.join('|'), camel.thread.join('|'));
   assertEquals(snake.blog_post, camel.blog_post);
   assertEquals(snake.content_hash, camel.content_hash);
   assertEquals(snake.social_card.title, camel.social_card.title);
+});
+
+Deno.test('postToTwitterIfConfigured skips when poster is null', async () => {
+  const out = await buildContent(mockBounty('tw-skip', 'Twitter skip'), mockLLM({}));
+  assertEquals(await postToTwitterIfConfigured(out, null), false);
+});
+
+Deno.test('postToTwitterIfConfigured posts tweet and thread segments', async () => {
+  const posted: string[] = [];
+  const poster: TwitterPoster = { post: (t) => { posted.push(t); return Promise.resolve(); } };
+  const out = await buildContent(mockBounty('tw-post', 'Twitter post'), mockLLM({}));
+  assertEquals(await postToTwitterIfConfigured(out, poster), true);
+  assertEquals(posted.length, out.thread.length);
 });
