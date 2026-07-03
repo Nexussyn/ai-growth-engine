@@ -1,0 +1,28 @@
+.mobile-landing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #f0f0f0;
+}
+
+.mobile-landing h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.mobile-landing button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #4CAF50;
+  color: #fff;
+  cursor: pointer;
+}
+
+.mobile-landing button a {
+  text-decoration: none;
+  color: #fff;
+  margin: 0 10px;
+}
