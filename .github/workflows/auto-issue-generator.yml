@@ -1,0 +1,22 @@
+name: Auto Issue Generator
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:
+
+jobs:
+  generate-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate new bounty issues from AI analysis
+        run: |
+          curl -s -X POST "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/bounty-hunter" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"scan_and_generate","repo":"Nexussyn/ai-growth-engine","max_new_issues":3,"min_reward_usdc":5}'
+
+      - name: Broadcast to agent networks
+        run: |
+          curl -s -X POST "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-outreach" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"broadcast_bounties","repo":"Nexussyn/ai-growth-engine","channels":["a2a","acp","x402"]}'
