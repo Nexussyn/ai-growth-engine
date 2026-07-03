@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI Growth Engine – Mobile</title>
+  <style>
+    /* Minimal reset */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      color: #fff;
+      text-align: center;
+    }
+    .hero {
+      max-width: 400px;
+      width: 100%;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+      font-weight: 700;
+    }
+    p.subtitle {
+      font-size: 1rem;
+      opacity: 0.9;
+      margin-bottom: 2rem;
+    }
+    .cta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .cta a {
+      display: block;
+      padding: 0.9rem 1.5rem;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-decoration: none;
+      color: #fff;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: background 0.2s, transform 0.1s;
+    }
+    .cta a:hover {
+      background: rgba(255,255,255,0.25);
+      transform: scale(1.02);
+    }
+    .fallback-note {
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+    .desktop-only {
+      display: none;
+    }
+    @media (min-width: 768px) {
+      h1 { font-size: 2.5rem; }
+      p.subtitle { font-size: 1.2rem; }
+      .cta { flex-direction: row; justify-content: center; }
+      .desktop-only { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>AI Growth Engine</h1>
+    <p class="subtitle">Connect your wallet to start earning</p>
+    <div class="cta" id="mobile-cta">
+      <a href="metamask://" class="wallet-btn" data-wallet="metamask">MetaMask</a>
+      <a href="cbwallet://" class="wallet-btn" data-wallet="coinbase">Coinbase Wallet</a>
+      <a href="rainbow://" class="wallet-btn" data-wallet="rainbow">Rainbow</a>
+    </div>
+    <p class="fallback-note desktop-only">Scan QR code on mobile</p>
+  </div>
+
+  <script>
+    (function() {
+      // Mobile detection
+      const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+      // If not mobile, show a different message or redirect
+      if (!isMobile) {
+        document.querySelector('.hero h1').textContent = 'Open on mobile to connect';
+        document.querySelector('.cta').innerHTML = '<p style="font-size:0.9rem;">This page works best on a mobile device.</p>';
+        return;
+      }
+
+      // Track conversion clicks
+      document.querySelectorAll('.wallet-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          const wallet = this.dataset.wallet;
+          const event = { event: 'mobile_landing_cta_click', wallet, timestamp: Date.now() };
+          // Log to system_events (assuming a POST endpoint exists)
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon('/api/system_events', JSON.stringify(event));
+          } else {
+            console.log('system_events:', event);
+          }
+        });
