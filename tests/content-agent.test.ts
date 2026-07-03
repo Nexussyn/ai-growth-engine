@@ -1,52 +1,65 @@
 import assert from 'node:assert/strict';
-import { generate_content, generate_content_and_store, ensureUniqueAcrossBounties } from '../src/agents/content-agent';
+import { createMockLLM, generate_content, type BountyOutcome, type OutreachRecord } from '../src/agents/content-agent';
 
-const outcomeA = {
+const bounty: BountyOutcome = {
   id: 'bounty-a',
-  title: 'Auto-ops scaling',
-  scope: 'Add referral telemetry for conversion events',
-  outcome: 'Increased onboarding conversion and reduced manual review time',
+  title: 'Referral reward loop shipped',
+  scope: 'Award credits when a referred user converts after the first paid call',
+  outcome: 'Referrers receive five free credits, duplicate conversions are blocked, and events are auditable',
   tags: ['growth', 'bounty'],
 };
 
-const outcomeB = {
-  id: 'bounty-b',
-  title: 'Auto-ops scaling',
-  scope: 'Add referral telemetry for conversion events',
-  outcome: 'Increased onboarding conversion and reduced manual review time',
-  tags: ['growth', 'bounty'],
-};
-
-const contentA = generate_content(outcomeA);
-const contentA2 = generate_content(outcomeA);
-const contentB = generate_content(outcomeB);
-
-assert.equal(contentA.tweet.length <= 280, true);
-assert.equal(contentA.thread.length, 5);
-assert.ok(contentA.blogPost.length > 30);
-assert.equal(contentA.thread[0].length > 5, true);
-assert.equal(contentA.tweet === contentA2.tweet, true);
-assert.equal(Array.isArray(contentA.thread), true);
-
-const unique = ensureUniqueAcrossBounties([
-  contentA.tweet.toLowerCase(),
-], contentB.tweet);
-
-assert.equal(unique, contentA.tweet.toLowerCase() !== contentB.tweet.toLowerCase() || outcomeA.id !== outcomeB.id);
-
-let stored: any = null;
-const store = {
-  async upsertOutreachSent(row: any) {
-    stored = row;
+const llmResponse = JSON.stringify({
+  tweet: 'Referral rewards shipped with auditable credit grants and duplicate protection.',
+  thread: [
+    'The referral loop now has a clear conversion path.',
+    'Referrers receive credits only after a paid conversion.',
+    'Duplicate referral usage is blocked by the processing contract.',
+    'The outcome is easier to audit and measure after merge.',
+    'Next step: compare referral conversion before and after launch.',
+  ],
+  blog_post: Array.from({ length: 285 }, (_, index) => `word${index}`).join(' '),
+  social_card: {
+    title: 'Referral loop shipped',
+    subtitle: 'Auditable rewards for successful referral conversion',
+    footer: 'AI Growth Engine bounty-a',
   },
-};
+});
 
-generate_content_and_store(outcomeA, { store }).then((result) => {
-  assert.equal(result.bountyId, outcomeA.id);
+async function run() {
+  let stored: OutreachRecord | null = null;
+  const store = {
+    async getBountyOutcome(bountyId: string) {
+      return bountyId === bounty.id ? bounty : null;
+    },
+    async upsertOutreachSent(record: OutreachRecord) {
+      stored = record;
+    },
+  };
+
+  const content = await generate_content(bounty.id, {
+    store,
+    llm: createMockLLM(llmResponse),
+    now: () => new Date('2026-07-03T00:00:00.000Z'),
+  });
+
+  assert.equal(content.tweet.length <= 280, true);
+  assert.equal(content.thread.length, 5);
+  assert.equal(content.blog_post.split(/\s+/).length >= 260, true);
+  assert.equal(content.social_card.title, 'Referral loop shipped');
   assert.ok(stored);
-  assert.equal(stored.sha256.length > 0, true);
-  console.log('content agent test passed');
-}).catch((error) => {
+  assert.equal(stored.bounty_id, bounty.id);
+  assert.equal(stored.llm_provider, 'mock');
+  assert.equal(stored.created_at, '2026-07-03T00:00:00.000Z');
+  assert.equal(stored.content_hash.length >= 8, true);
+
+  await assert.rejects(
+    () => generate_content('missing', { store, llm: createMockLLM(llmResponse) }),
+    /Bounty not found/,
+  );
+}
+
+run().catch((error) => {
   console.error(error);
   process.exit(1);
 });
