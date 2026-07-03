@@ -2,6 +2,7 @@ import { assertEquals, assertRejects, assertNotEquals } from 'https://deno.land/
 import {
   buildContent,
   generateContent,
+  generate_content,
   type BountyRecord,
   type ContentStore,
   type LLMProvider,
@@ -96,4 +97,14 @@ Deno.test('thread parser normalizes fewer than 5 LLM segments', async () => {
   const out = await buildContent(mockBounty('x', 'Upsell trigger'), llm);
   assertEquals(out.thread.length, 5);
   assertEquals(out.thread[0].startsWith('1/'), true);
+});
+
+Deno.test('generate_content snake_case alias matches generateContent', async () => {
+  const store = memoryStore({ 'b-snake': mockBounty('b-snake', 'Snake case export') });
+  const llm = mockLLM({});
+  const camel = await generateContent('b-snake', { store, llm });
+  const snake = await generate_content('b-snake', { store, llm });
+  assertEquals(snake.tweet, camel.tweet);
+  assertEquals(snake.thread.join('|'), camel.thread.join('|'));
+  assertEquals(snake.blog_post, camel.blog_post);
 });
