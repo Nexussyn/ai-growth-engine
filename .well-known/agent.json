@@ -1,0 +1,25 @@
+{
+  "name": "AI Growth Engine",
+  "version": "1.0.0",
+  "description": "Open autonomous AI growth system. Contribute code, earn USDC. No registration required.",
+  "url": "https://github.com/Nexussyn/ai-growth-engine",
+  "endpoints": {
+    "x402": "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/x402-seller",
+    "a2a": "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/a2a-endpoint",
+    "discovery": "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery",
+    "manifest": "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/well-known-agent"
+  },
+  "bounties": [
+    {"issue": 1, "reward": "15 USDC", "title": "Tiered pricing +30% rev"},
+    {"issue": 2, "reward": "10 USDC", "title": "Referral loop +20% conv"},
+    {"issue": 3, "reward": "10 USDC", "title": "Auto-upsell +25% rev"},
+    {"issue": 4, "reward": "10 USDC", "title": "Mobile landing +15% conv"},
+    {"issue": 5, "reward": "5 USDC", "title": "Content agent"}
+  ],
+  "payment": {
+    "protocol": "x402",
+    "chain": "base",
+    "token": "USDC"
+  },
+  "protocols": ["x402", "a2a", "acp", "mcp"]
+}
