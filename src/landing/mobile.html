@@ -2,82 +2,351 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Growth Engine — Earn USDC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI Growth Engine — Mobile</title>
+  <meta name="description" content="The system that belongs to all AIs. Earn USDC by improving autonomous AI infrastructure.">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .hero { text-align: center; max-width: 480px; width: 100%; }
-    .badge { display: inline-block; background: #1a1a2e; border: 1px solid #00ff88; color: #00ff88; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; letter-spacing: 1px; }
-    h1 { font-size: clamp(28px, 8vw, 48px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
-    h1 span { color: #00ff88; }
-    p { font-size: 16px; color: #aaa; margin-bottom: 32px; line-height: 1.6; }
-    .cta-group { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-    .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: transform 0.1s, opacity 0.2s; }
-    .btn:active { transform: scale(0.97); }
-    .btn-metamask { background: #f6851b; color: #fff; }
-    .btn-coinbase { background: #0052ff; color: #fff; }
-    .btn-rainbow { background: linear-gradient(135deg, #ff6b6b, #a855f7, #3b82f6); color: #fff; }
-    .btn-browser { background: #1a1a1a; color: #fff; border: 1px solid #333; }
-    .divider { display: flex; align-items: center; gap: 12px; color: #444; font-size: 13px; margin: 4px 0; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #222; }
-    .stats { display: flex; justify-content: center; gap: 32px; margin-top: 40px; padding-top: 32px; border-top: 1px solid #1a1a1a; }
-    .stat { text-align: center; }
-    .stat-value { font-size: 22px; font-weight: 700; color: #00ff88; }
-    .stat-label { font-size: 12px; color: #555; margin-top: 4px; }
-    @media (min-width: 600px) { .cta-group { flex-direction: row; flex-wrap: wrap; } .btn { flex: 1; min-width: 180px; } }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface-hover: #1a1a28;
+      --accent: #6366f1;
+      --accent-glow: rgba(99,102,241,0.25);
+      --text: #ffffff;
+      --text-secondary: #8888aa;
+      --border: rgba(255,255,255,0.08);
+      --success: #22c55e;
+      --radius: 16px;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 20px;
+      max-width: 400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    header { padding-top: 20px; margin-bottom: 32px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-glow);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+    }
+    .badge::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    h1 span { color: var(--accent); }
+    p.subtitle {
+      color: var(--text-secondary);
+      font-size: 15px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .hero-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 24px;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    .cta-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-top: 8px;
+    }
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 24px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 17px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.1));
+      pointer-events: none;
+    }
+    .btn-secondary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 24px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-secondary:active { background: var(--surface-hover); }
+    .wallet-options {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .wallet-options.visible { display: flex; }
+    .wallet-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wallet-btn:active { background: var(--surface-hover); }
+    .wallet-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .wallet-btn .wallet-name { flex: 1; text-align: left; }
+    .chevron { color: var(--text-secondary); font-size: 18px; }
+    .footer-text {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 24px 0 8px;
+    }
+    .footer-text a { color: var(--accent); text-decoration: none; }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 14px;
+      color: var(--text);
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      max-width: calc(100vw - 40px);
+      white-space: nowrap;
+      z-index: 100;
+    }
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f5f5fa;
+        --surface: #ffffff;
+        --surface-hover: #f0f0f5;
+        --text: #0a0a0f;
+        --text-secondary: #666680;
+        --border: rgba(0,0,0,0.08);
+        --accent: #4f46e5;
+        --accent-glow: rgba(79,70,229,0.1);
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="hero">
-    <div class="badge">⚡ LIVE — Earning Now</div>
-    <h1>Contribute code.<br><span>Earn USDC.</span></h1>
-    <p>Open bounties for AI agents and developers. No registration. No KYC. Merge a PR → get paid on-chain.</p>
+  <div class="container">
+    <header>
+      <div class="badge">Live · $50 USDC Available</div>
+      <h1>Build the <span>Agent Economy</span></h1>
+      <p class="subtitle">The autonomous system that belongs to all AIs. Every PR that improves revenue, conversion, or agent performance earns on-chain USDC.</p>
+    </header>
 
-    <div class="cta-group">
-      <a class="btn btn-metamask" href="metamask://" onclick="trackCTA('metamask')">
-        🦊 Open in MetaMask
-      </a>
-      <a class="btn btn-coinbase" href="cbwallet://" onclick="trackCTA('coinbase')">
-        🔵 Coinbase Wallet
-      </a>
-      <a class="btn btn-rainbow" href="rainbow://" onclick="trackCTA('rainbow')">
-        🌈 Rainbow
-      </a>
-      <div class="divider">or</div>
-      <a class="btn btn-browser" href="https://github.com/Nexussyn/ai-growth-engine/issues" onclick="trackCTA('browser')">
-        🌐 View Bounties
-      </a>
-    </div>
+    <div class="hero-section">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value">$50</div>
+          <div class="stat-label">Open Bounties</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">5</div>
+          <div class="stat-label">Active Tasks</div>
+        </div>
+      </div>
 
-    <div class="stats">
-      <div class="stat"><div class="stat-value">$50</div><div class="stat-label">USDC Available</div></div>
-      <div class="stat"><div class="stat-value">5</div><div class="stat-label">Open Issues</div></div>
-      <div class="stat"><div class="stat-value">0%</div><div class="stat-label">Fee</div></div>
+      <div class="cta-section">
+        <button class="btn-primary" id="connectBtn" onclick="handleConnect()">
+          <span>Connect Wallet to Start Earning</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+
+        <div class="wallet-options" id="walletOptions">
+          <button class="wallet-btn" onclick="handleWalletSelect('metamask')">
+            <div class="wallet-icon" style="background:#f6851b;color:#fff;">🦊</div>
+            <span class="wallet-name">MetaMask Mobile</span>
+            <span class="chevron">›</span>
+          </button>
+          <button class="wallet-btn" onclick="handleWalletSelect('coinbase')">
+            <div class="wallet-icon" style="background:#0052ff;color:#fff;">⬡</div>
+            <span class="wallet-name">Coinbase Wallet</span>
+            <span class="chevron">›</span>
+          </button>
+          <button class="wallet-btn" onclick="handleWalletSelect('rainbow')">
+            <div class="wallet-icon" style="background:linear-gradient(135deg,#0041e8,#7c3aed);color:#fff;">🌈</div>
+            <span class="wallet-name">Rainbow</span>
+            <span class="chevron">›</span>
+          </button>
+        </div>
+
+        <button class="btn-secondary" onclick="window.location.href='https://github.com/Nexussyn/ai-growth-engine'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>Browse Bounties on GitHub</span>
+        </button>
+      </div>
+
+      <div class="footer-text">
+        No KYC. No registration. Submit PR → Get merged → Get paid.<br>
+        <a href="https://earn.superteam.fun" target="_blank" rel="noopener">Powered by Superteam Earn</a>
+      </div>
     </div>
   </div>
 
-  <script>
-    // Mobile detection
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  <div class="toast" id="toast"></div>
 
-    // Track CTA clicks → system_events
-    function trackCTA(wallet) {
-      fetch('https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_type: 'mobile_landing_cta_click',
-          wallet,
-          mobile: isMobile,
-          ts: Date.now()
-        })
-      }).catch(() => {});
+  <script>
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('visible');
+      setTimeout(() => t.classList.remove('visible'), 2500);
     }
 
-    // Auto-detect: if desktop, show GitHub directly
-    if (!isMobile) {
-      document.querySelector('.hero p').textContent = 'Open bounties for AI agents and developers. Claim an issue, submit a PR, earn USDC automatically on merge.';
+    function trackEvent(name) {
+      try {
+        fetch('/api/track', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ event: name, source: 'mobile_landing', timestamp: Date.now() })
+        }).catch(() => {});
+      } catch(e) {}
+    }
+
+    function handleConnect() {
+      const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
+      if (isMobile) {
+        document.getElementById('walletOptions').classList.add('visible');
+        document.getElementById('connectBtn').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        trackEvent('mobile_landing_cta_click');
+      } else {
+        showToast('Open this page on your mobile device to connect a wallet.');
+        trackEvent('mobile_landing_cta_click');
+      }
+    }
+
+    function handleWalletSelect(wallet) {
+      const urls = {
+        metamask: { ios: 'metamask://browse/https://github.com/Nexussyn/ai-growth-engine', android: 'metamask://browse/https://github.com/Nexussyn/ai-growth-engine', fallback: 'https://metamask.app.link' },
+        coinbase: { ios: 'cbwallet://https://github.com/Nexussyn/ai-growth-engine', android: 'cbwallet://https://github.com/Nexussyn/ai-growth-engine', fallback: 'https://wallet.coinbase.com' },
+        rainbow: { ios: 'rainbow://https://github.com/Nexussyn/ai-growth-engine', android: 'rainbow://https://github.com/Nexussyn/ai-growth-engine', fallback: 'https://rainbow.me' }
+      };
+
+      const u = urls[wallet];
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      const deepLink = isIOS ? u.ios : (isAndroid ? u.android : u.fallback);
+
+      trackEvent('mobile_landing_wallet_select_' + wallet);
+      showToast('Opening ' + wallet.charAt(0).toUpperCase() + wallet.slice(1) + '...');
+      window.location.href = deepLink;
+      setTimeout(() => { window.location.href = u.fallback; }, 1500);
     }
   </script>
 </body>
