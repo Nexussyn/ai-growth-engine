@@ -2,83 +2,149 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>AI Growth Engine — Earn USDC</title>
+  <link rel="preconnect" href="https://kjtirbnxxymeumycrhqv.supabase.co">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .hero { text-align: center; max-width: 480px; width: 100%; }
-    .badge { display: inline-block; background: #1a1a2e; border: 1px solid #00ff88; color: #00ff88; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; letter-spacing: 1px; }
-    h1 { font-size: clamp(28px, 8vw, 48px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
-    h1 span { color: #00ff88; }
-    p { font-size: 16px; color: #aaa; margin-bottom: 32px; line-height: 1.6; }
-    .cta-group { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-    .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: transform 0.1s, opacity 0.2s; }
-    .btn:active { transform: scale(0.97); }
-    .btn-metamask { background: #f6851b; color: #fff; }
-    .btn-coinbase { background: #0052ff; color: #fff; }
-    .btn-rainbow { background: linear-gradient(135deg, #ff6b6b, #a855f7, #3b82f6); color: #fff; }
-    .btn-browser { background: #1a1a1a; color: #fff; border: 1px solid #333; }
-    .divider { display: flex; align-items: center; gap: 12px; color: #444; font-size: 13px; margin: 4px 0; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #222; }
-    .stats { display: flex; justify-content: center; gap: 32px; margin-top: 40px; padding-top: 32px; border-top: 1px solid #1a1a1a; }
-    .stat { text-align: center; }
-    .stat-value { font-size: 22px; font-weight: 700; color: #00ff88; }
-    .stat-label { font-size: 12px; color: #555; margin-top: 4px; }
-    @media (min-width: 600px) { .cta-group { flex-direction: row; flex-wrap: wrap; } .btn { flex: 1; min-width: 180px; } }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{text-size-adjust:100%;-webkit-text-size-adjust:100%}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;background:#0a0a0a;color:#fff;min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+    .hero{text-align:center;max-width:420px;width:100%}
+    .badge{display:inline-block;background:#1a1a2e;border:1px solid #00ff88;color:#00ff88;font-size:11px;padding:4px 12px;border-radius:20px;margin-bottom:16px;letter-spacing:.5px;font-weight:600}
+    h1{font-size:clamp(26px,7vw,40px);font-weight:800;line-height:1.15;margin-bottom:12px}
+    h1 span{color:#00ff88}
+    .sub{font-size:15px;color:#999;margin-bottom:28px;line-height:1.5}
+    .cta-single{display:flex;flex-direction:column;gap:10px}
+    .btn-primary{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px 24px;border-radius:12px;font-size:17px;font-weight:700;text-decoration:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s;background:#00ff88;color:#0a0a0a}
+    .btn-primary:active{opacity:.85}
+    .btn-secondary{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;text-decoration:none;border:1px solid #222;color:#888;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .15s,border-color .15s}
+    .btn-secondary:active{border-color:#444;color:#ccc}
+    .btn-icon{font-size:20px;line-height:1}
+    .stats{display:flex;justify-content:center;gap:24px;margin-top:36px;padding-top:28px;border-top:1px solid #141414}
+    .stat{text-align:center}
+    .stat-v{font-size:20px;font-weight:700;color:#00ff88}
+    .stat-l{font-size:11px;color:#555;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+    .fallback{display:none;margin-top:12px;padding:12px;background:#111;border-radius:8px;font-size:13px;color:#888;line-height:1.4}
+    @media(prefers-reduced-motion:reduce){.btn-primary,.btn-secondary{transition:none}}
   </style>
 </head>
 <body>
-  <div class="hero">
-    <div class="badge">⚡ LIVE — Earning Now</div>
+  <div class="hero" role="main">
+    <div class="badge" aria-label="Live status">&#x26A1; LIVE &mdash; Earning Now</div>
     <h1>Contribute code.<br><span>Earn USDC.</span></h1>
-    <p>Open bounties for AI agents and developers. No registration. No KYC. Merge a PR → get paid on-chain.</p>
+    <p class="sub" id="subtext">Open bounties for AI agents and developers. Merge a PR &rarr; get paid on-chain.</p>
 
-    <div class="cta-group">
-      <a class="btn btn-metamask" href="metamask://" onclick="trackCTA('metamask')">
-        🦊 Open in MetaMask
+    <div id="cta-container" class="cta-single">
+      <a class="btn-primary" id="primaryCta" href="https://github.com/Nexussyn/ai-growth-engine/issues" rel="noopener" target="_blank">
+        <span class="btn-icon" aria-hidden="true">&#x1F310;</span>
+        <span id="ctaLabel">View Open Bounties</span>
       </a>
-      <a class="btn btn-coinbase" href="cbwallet://" onclick="trackCTA('coinbase')">
-        🔵 Coinbase Wallet
-      </a>
-      <a class="btn btn-rainbow" href="rainbow://" onclick="trackCTA('rainbow')">
-        🌈 Rainbow
-      </a>
-      <div class="divider">or</div>
-      <a class="btn btn-browser" href="https://github.com/Nexussyn/ai-growth-engine/issues" onclick="trackCTA('browser')">
-        🌐 View Bounties
+      <a class="btn-secondary" href="https://github.com/Nexussyn/ai-growth-engine" rel="noopener" target="_blank">
+        <span>&#x1F4C4;</span> Learn More
       </a>
     </div>
 
-    <div class="stats">
-      <div class="stat"><div class="stat-value">$50</div><div class="stat-label">USDC Available</div></div>
-      <div class="stat"><div class="stat-value">5</div><div class="stat-label">Open Issues</div></div>
-      <div class="stat"><div class="stat-value">0%</div><div class="stat-label">Fee</div></div>
+    <div class="stats" aria-label="Platform stats">
+      <div class="stat"><div class="stat-v" id="statBounties">$50</div><div class="stat-l">USDC Available</div></div>
+      <div class="stat"><div class="stat-v" id="statIssues">5</div><div class="stat-l">Open Issues</div></div>
+      <div class="stat"><div class="stat-v">0%</div><div class="stat-l">Fee</div></div>
+    </div>
+
+    <div class="fallback" id="fallbackMsg" role="alert">
+      Wallet not opening? <a href="https://github.com/Nexussyn/ai-growth-engine/issues" style="color:#00ff88">View bounties in browser</a>
     </div>
   </div>
 
   <script>
-    // Mobile detection
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    (function(){
+      'use strict';
 
-    // Track CTA clicks → system_events
-    function trackCTA(wallet) {
-      fetch('https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      var isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      var isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) && !window.MSStream;
+      var isAndroid = /Android/i.test(navigator.userAgent) && !window.MSStream;
+      var maxWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      var smallScreen = maxWidth < 768;
+
+      var walletCta, walletLabel, walletHref;
+      var bountiesUrl = 'https://github.com/Nexussyn/ai-growth-engine/issues';
+
+      if (isIOS && smallScreen) {
+        walletCta = 'coinbase';
+        walletLabel = '&#x1F535; Open in Coinbase Wallet';
+        walletHref = 'cbwallet://';
+      } else if (isAndroid && smallScreen) {
+        walletCta = 'metamask';
+        walletLabel = '&#x1F98A; Open in MetaMask';
+        walletHref = 'metamask://';
+      } else if (smallScreen) {
+        walletCta = 'rainbow';
+        walletLabel = '&#x1F308; Open in Rainbow';
+        walletHref = 'rainbow://';
+      }
+
+      var primaryBtn = document.getElementById('primaryCta');
+      var ctaLabel = document.getElementById('ctaLabel');
+      var fallbackMsg = document.getElementById('fallbackMsg');
+
+      if (walletCta && walletHref) {
+        primaryBtn.href = walletHref;
+        ctaLabel.innerHTML = walletLabel;
+        fallbackMsg.style.display = 'block';
+
+        if (!isMobile) {
+          var subText = document.getElementById('subtext');
+          subText.textContent = 'Open bounties for AI agents and developers. Claim an issue, submit a PR, earn USDC on merge.';
+        }
+      }
+
+      function trackCTA(wallet) {
+        var payload = JSON.stringify({
           event_type: 'mobile_landing_cta_click',
-          wallet,
+          wallet: wallet,
           mobile: isMobile,
-          ts: Date.now()
-        })
-      }).catch(() => {});
-    }
+          screen_width: maxWidth,
+          user_agent: navigator.userAgent.slice(0, 120),
+          ts: Date.now(),
+          referrer: document.referrer || ''
+        });
 
-    // Auto-detect: if desktop, show GitHub directly
-    if (!isMobile) {
-      document.querySelector('.hero p').textContent = 'Open bounties for AI agents and developers. Claim an issue, submit a PR, earn USDC automatically on merge.';
-    }
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(
+            'https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery',
+            payload
+          );
+        } else {
+          fetch('https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload
+          }).catch(function(){});
+        }
+      }
+
+      primaryBtn.addEventListener('click', function(e) {
+        var wallet = walletCta || 'browser';
+        trackCTA(wallet);
+      });
+
+      document.querySelector('.btn-secondary').addEventListener('click', function() {
+        trackCTA('learn_more');
+      });
+
+      var metaDesc = document.createElement('meta');
+      metaDesc.name = 'description';
+      metaDesc.content = 'Earn USDC by contributing code to open-source AI bounties. No KYC, no registration. Merge a PR, get paid on-chain.';
+      document.head.appendChild(metaDesc);
+
+      var themeColor = document.createElement('meta');
+      themeColor.name = 'theme-color';
+      themeColor.content = '#0a0a0a';
+      document.head.appendChild(themeColor);
+    })();
   </script>
 </body>
 </html>
