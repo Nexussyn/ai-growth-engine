@@ -13,7 +13,7 @@ Workflows **Autonomous Bounty Validator** and **Agent PR Evaluator** show `actio
 3. Wait ~2 min — **Autonomous Bounty Validator** runs `deno test`, comments pass/fail, and auto-merges on pass
 4. Supabase webhook fires → `$5 USDC` to wallet in PR body
 
-Head commit for review: `2ed4012` (21 Deno tests, zero API keys).
+Head commit for review: `3e531b6` (21 Deno tests, zero API keys). See also [COMMUNITY_FEEDBACK.md](./COMMUNITY_FEEDBACK.md).
 
 ## Verify locally (no secrets)
 
