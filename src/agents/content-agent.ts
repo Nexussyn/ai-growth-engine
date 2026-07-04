@@ -8,8 +8,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? '';
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
+const getGroqKey = () => Deno.env.get('GROQ_API_KEY') ?? '';
+const getGeminiKey = () => Deno.env.get('GEMINI_API_KEY') ?? '';
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
@@ -20,11 +20,14 @@ export interface ContentOutput {
 }
 
 async function callLLM(prompt: string): Promise<string> {
+  const groqKey = getGroqKey();
+  const geminiKey = getGeminiKey();
+
   // Try Groq first (faster, higher free limit)
-  if (GROQ_API_KEY) {
+  if (groqKey) {
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'llama3-8b-8192',
         messages: [{ role: 'user', content: prompt }],
@@ -36,8 +39,8 @@ async function callLLM(prompt: string): Promise<string> {
   }
 
   // Fallback: Gemini Flash
-  if (GEMINI_API_KEY) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  if (geminiKey) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
@@ -89,16 +92,18 @@ export async function generateContent(bountyId: string): Promise<ContentOutput> 
 }
 
 // Edge Function entry point
-Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
-  try {
-    const { bounty_id } = await req.json();
-    if (!bounty_id) return new Response(JSON.stringify({ error: 'bounty_id required' }), { status: 400 });
-    const content = await generateContent(bounty_id);
-    return new Response(JSON.stringify({ ok: true, content }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
-  }
-});
+if (import.meta.main) {
+  Deno.serve(async (req: Request) => {
+    if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+    try {
+      const { bounty_id } = await req.json();
+      if (!bounty_id) return new Response(JSON.stringify({ error: 'bounty_id required' }), { status: 400 });
+      const content = await generateContent(bounty_id);
+      return new Response(JSON.stringify({ ok: true, content }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+    }
+  });
+}
