@@ -41,3 +41,23 @@ export function calculateBatchCost(startCount: number, numCalls: number, priorit
   }
   return Math.round(total * 1e6) / 1e6; // round to 6 decimals (USDC precision)
 }
+
+export interface UpsellResult {
+  upsell: boolean;
+  prompt?: string;
+}
+
+/**
+ * Checks if an upsell alert should be triggered based on call count.
+ * - Triggers on the 5th call (50% of 10 free calls).
+ */
+export function checkUpsellTrigger(callCount: number): UpsellResult {
+  if (callCount === 5) {
+    return {
+      upsell: true,
+      prompt: 'You have used 50% of your free calls. Upgrade for unlimited access.'
+    };
+  }
+  return { upsell: false };
+}
+
