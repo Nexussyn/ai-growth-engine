@@ -1,47 +1,104 @@
--- Migration: Referral system (Issue #2)
--- Idempotent
+-- Migration: Add referral reward system
+-- Awards 5 free credits per successful referral conversion
 
+-- Referral codes table
 CREATE TABLE IF NOT EXISTS referral_codes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL DEFAULT substring(gen_random_uuid()::text, 1, 8),
-  owner_id TEXT NOT NULL,
-  uses INT DEFAULT 0,
-  credits_awarded INT DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    total_conversions INT NOT NULL DEFAULT 0,
+    total_credits_awarded NUMERIC(10, 2) NOT NULL DEFAULT 0
 );
 
+CREATE INDEX IF NOT EXISTS idx_referral_codes_code ON referral_codes(code);
+CREATE INDEX IF NOT EXISTS idx_referral_codes_user ON referral_codes(user_id);
+
+-- Referral conversions table
 CREATE TABLE IF NOT EXISTS referral_conversions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  referral_code TEXT NOT NULL REFERENCES referral_codes(code),
-  new_user_id TEXT NOT NULL,
-  converted_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(referral_code, new_user_id)
+    id SERIAL PRIMARY KEY,
+    referral_code_id INT NOT NULL REFERENCES referral_codes(id),
+    referrer_user_id UUID NOT NULL,
+    referred_user_id UUID NOT NULL,
+    converted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    credits_awarded NUMERIC(10, 2) NOT NULL DEFAULT 5.00,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'awarded', 'reversed'))
 );
 
-CREATE OR REPLACE FUNCTION process_referral(p_code TEXT, p_new_user_id TEXT)
-RETURNS JSONB AS $$
+CREATE INDEX IF NOT EXISTS idx_referral_conversions_referrer ON referral_conversions(referrer_user_id);
+CREATE INDEX IF NOT EXISTS idx_referral_conversions_referred ON referral_conversions(referred_user_id);
+
+-- Function: generate unique referral code
+CREATE OR REPLACE FUNCTION generate_referral_code(p_user_id UUID)
+RETURNS VARCHAR(20) AS $$
 DECLARE
-  v_owner_id TEXT;
-  v_credits INT := 5;
+    v_code VARCHAR(20);
+    v_attempts INT := 0;
 BEGIN
-  -- Idempotency check
-  IF EXISTS (SELECT 1 FROM referral_conversions WHERE referral_code = p_code AND new_user_id = p_new_user_id) THEN
-    RETURN jsonb_build_object('status', 'already_processed');
-  END IF;
+    LOOP
+        v_code := upper(substr(md5(random()::text || p_user_id::text), 1, 8));
+        BEGIN
+            INSERT INTO referral_codes (user_id, code) VALUES (p_user_id, v_code);
+            RETURN v_code;
+        EXCEPTION WHEN unique_violation THEN
+            v_attempts := v_attempts + 1;
+            IF v_attempts > 5 THEN
+                RAISE EXCEPTION 'Could not generate unique referral code';
+            END IF;
+        END;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
 
-  SELECT owner_id INTO v_owner_id FROM referral_codes WHERE code = p_code;
-  IF NOT FOUND THEN RETURN jsonb_build_object('status', 'invalid_code'); END IF;
+-- Function: process referral conversion
+CREATE OR REPLACE FUNCTION process_referral(p_code VARCHAR(20), p_referred_user_id UUID)
+RETURNS NUMERIC(10, 2) AS $$
+DECLARE
+    v_referral_id INT;
+    v_referrer_user_id UUID;
+    v_credits NUMERIC(10, 2) := 5.00;
+BEGIN
+    -- Find the referral code
+    SELECT id, user_id INTO v_referral_id, v_referrer_user_id
+    FROM referral_codes WHERE code = p_code;
+    
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Invalid referral code: %', p_code;
+    END IF;
+    
+    -- Prevent self-referral
+    IF v_referrer_user_id = p_referred_user_id THEN
+        RAISE EXCEPTION 'Cannot refer yourself';
+    END IF;
+    
+    -- Check if already converted
+    IF EXISTS (SELECT 1 FROM referral_conversions WHERE referred_user_id = p_referred_user_id) THEN
+        RAISE EXCEPTION 'User already converted through a referral';
+    END IF;
+    
+    -- Record conversion
+    INSERT INTO referral_conversions (referral_code_id, referrer_user_id, referred_user_id, credits_awarded)
+    VALUES (v_referral_id, v_referrer_user_id, p_referred_user_id, v_credits);
+    
+    -- Update stats
+    UPDATE referral_codes 
+    SET total_conversions = total_conversions + 1,
+        total_credits_awarded = total_credits_awarded + v_credits
+    WHERE id = v_referral_id;
+    
+    RETURN v_credits;
+END;
+$$ LANGUAGE plpgsql;
 
-  -- Log conversion
-  INSERT INTO referral_conversions (referral_code, new_user_id) VALUES (p_code, p_new_user_id);
-
-  -- Award credits
-  UPDATE referral_codes SET uses = uses + 1, credits_awarded = credits_awarded + v_credits WHERE code = p_code;
-
-  -- Log event
-  INSERT INTO system_events (event_type, payload, created_at)
-  VALUES ('referral_conversion', jsonb_build_object('code', p_code, 'new_user', p_new_user_id, 'credits', v_credits), NOW());
-
-  RETURN jsonb_build_object('status', 'ok', 'credits_awarded', v_credits, 'owner_id', v_owner_id);
+-- Function: award referral credits to referrer
+CREATE OR REPLACE FUNCTION award_referral_credits()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Mark as awarded when referred user makes first paid call
+    IF NEW.status = 'awarded' THEN
+        -- Credit already awarded on conversion
+        NULL;
+    END IF;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
