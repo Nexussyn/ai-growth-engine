@@ -4,6 +4,7 @@ import {
   generateContent,
   generate_content,
   postToTwitterIfConfigured,
+  resolvePostRhythm,
   shouldPostToTwitter,
   stableHash,
   type BountyRecord,
@@ -11,6 +12,7 @@ import {
   type LLMProvider,
   type TwitterPoster,
 } from '../src/agents/content-agent.ts';
+import { MOCK_BOUNTY_FIXTURES } from './mock-bounty-fixtures.ts';
 
 const mockBounty = (id: string, title: string): BountyRecord => ({
   id,
@@ -26,35 +28,54 @@ function mockLLM(responses: Record<string, string>): LLMProvider {
   return {
     name: 'mock',
     complete(prompt: string) {
+      const idMatch = prompt.match(/Bounty ID: ([^|]+)/);
+      const titleMatch = prompt.match(/Title: "([^"]+)"/);
+      const tag = (titleMatch?.[1] ?? idMatch?.[1] ?? 'bounty').trim();
       if (prompt.includes('single tweet') || prompt.includes('one tweet')) {
-        return Promise.resolve(responses.tweet ?? 'Shipped: tiered pricing live — $5 USDC paid on merge. Fork and earn.');
+        return Promise.resolve(
+          responses.tweet ?? `Shipped: ${tag} — $5 USDC paid on merge. Fork and earn.`,
+        );
       }
       if (prompt.includes('thread')) {
         return Promise.resolve(
           responses.thread ??
-            '1/ Bounty complete---2/ Open agents welcome---3/ Paid on Base---4/ x402 ready---5/ Claim next issue',
+            `1/ ${tag} complete---2/ Open agents welcome---3/ Paid on Base---4/ x402 ready---5/ Claim next issue`,
         );
       }
       return Promise.resolve(
         responses.blog ??
-          'A contributor merged agent work that turns bounty outcomes into viral content. '.repeat(20),
+          `${tag}: A contributor merged agent work that turns bounty outcomes into viral content. `.repeat(
+            20,
+          ),
       );
     },
   };
 }
 
 function memoryStore(bounties: Record<string, BountyRecord>): ContentStore {
-  const saved: Array<{ bountyId: string; content: unknown }> = [];
-  return {
+  const saved: Array<{ bountyId: string; content: unknown; channel?: string }> = [];
+  let lastTwitterAt: string | null = null;
+  const store: ContentStore = {
     async fetchBounty(id) {
       return bounties[id] ?? null;
     },
     async saveOutreach(bountyId, content) {
-      saved.push({ bountyId, content });
+      saved.push({ bountyId, content, channel: 'content_agent' });
     },
-    // @ts-ignore test helper
+    async fetchLastTwitterPostAt() {
+      return lastTwitterAt;
+    },
+    async recordTwitterPost(bountyId, tweet) {
+      lastTwitterAt = new Date().toISOString();
+      saved.push({ bountyId, content: { tweet }, channel: 'content_agent_twitter' });
+    },
+    // @ts-ignore test helpers
     saved,
+    setLastTwitterAt(iso: string | null) {
+      lastTwitterAt = iso;
+    },
   };
+  return store;
 }
 
 Deno.test('generateContent returns tweet, thread, blog_post', async () => {
@@ -168,3 +189,48 @@ Deno.test('postToTwitterIfConfigured skips when rhythm gate blocks', async () =>
   assertEquals(await postToTwitterIfConfigured(out, poster, bounty), false);
   assertEquals(posted.length, 0);
 });
+
+Deno.test('resolvePostRhythm reads last_post_at from store', async () => {
+  const store = memoryStore({});
+  const recent = new Date(Date.now() - 2 * 3_600_000).toISOString();
+  // @ts-ignore
+  store.setLastTwitterAt(recent);
+  const rhythm = await resolvePostRhythm(store, { min_hours_between: 6 });
+  assertEquals(rhythm.last_post_at, recent);
+});
+
+Deno.test('postToTwitterIfConfigured records twitter cadence in store', async () => {
+  const posted: string[] = [];
+  const poster: TwitterPoster = { post: (t) => { posted.push(t); return Promise.resolve(); } };
+  const bounty = mockBounty('tw-record', 'Record cadence');
+  const store = memoryStore({ 'tw-record': bounty });
+  const out = await buildContent(bounty, mockLLM({}));
+  assertEquals(await postToTwitterIfConfigured(out, poster, bounty, { min_reward_usd: 1 }, store), true);
+  // @ts-ignore
+  assertEquals(store.saved.some((r) => r.channel === 'content_agent_twitter'), true);
+});
+
+Deno.test('postToTwitterIfConfigured blocks when store shows recent tweet', async () => {
+  const posted: string[] = [];
+  const poster: TwitterPoster = { post: (t) => { posted.push(t); return Promise.resolve(); } };
+  const bounty = mockBounty('tw-cadence', 'Cadence from store');
+  const store = memoryStore({ 'tw-cadence': bounty });
+  const recent = new Date(Date.now() - 1 * 3_600_000).toISOString();
+  // @ts-ignore
+  store.setLastTwitterAt(recent);
+  const out = await buildContent(bounty, mockLLM({}));
+  assertEquals(await postToTwitterIfConfigured(out, poster, bounty, { min_hours_between: 6 }, store), false);
+  assertEquals(posted.length, 0);
+});
+
+for (const fixture of MOCK_BOUNTY_FIXTURES) {
+  Deno.test(`fixture ${fixture.id} produces valid outreach`, async () => {
+    const store = memoryStore({ [fixture.id]: fixture });
+    const out = await generateContent(fixture.id, { store, llm: mockLLM({}), auto_post_twitter: false });
+    assertEquals(out.tweet.length <= 280, true);
+    assertEquals(out.thread.length, 5);
+    assertEquals(out.blog_post.split(/\s+/).length >= 260, true);
+    assertEquals(out.social_card.title.length > 0, true);
+    assertNotEquals(out.content_hash, '');
+  });
+}

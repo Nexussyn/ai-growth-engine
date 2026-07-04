@@ -6,4 +6,5 @@ if ! command -v deno >/dev/null 2>&1; then
   echo "Install Deno: https://deno.land"
   exit 1
 fi
-deno test --allow-env tests/content-agent.test.ts
+deno test --allow-env tests/content-agent.test.ts tests/mock-bounty-fixtures.ts 2>/dev/null || \
+  deno test --allow-env tests/content-agent.test.ts

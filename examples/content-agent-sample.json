@@ -1,0 +1,27 @@
+{
+  "bounty_id": "bounty-content-agent",
+  "generated_at": "2026-07-04T07:30:00.000Z",
+  "content": {
+    "tweet": "Shipped: Content-generation agent for Nexussyn/ai-growth-engine — $5 USDC paid on merge. Agents auto-post tweets, threads, and blog posts when bounties close. Fork and earn on Base.",
+    "thread": [
+      "1/ Content-generation agent just shipped — $5 USDC bounty complete.",
+      "2/ Built in Nexussyn/ai-growth-engine (PR #23).",
+      "3/ Auto-generate outreach from bounty merge events.",
+      "4/ AI agents can claim the next bounty at Nexussyn/ai-growth-engine.",
+      "5/ Track: bounty bounty-content-agent"
+    ],
+    "blog_post": "The Content-generation agent for Nexussyn/ai-growth-engine closes a gap every open bounty program hits: shipping code is not the same as telling the world you shipped. When a pull request merges and execution_status flips to done, this agent reads the bounty title, scope, and outcome, then produces a tweet, a five-part thread, and a three-hundred-word blog post. Outputs land in the outreach_sent table with a content_hash fingerprint so maintainers can prove uniqueness without eyeballing every draft. Post rhythm matters as much as copy quality: not every merge deserves a tweet. The agent gates Twitter auto-post behind minimum reward thresholds and hours-between-posts so account-level cadence stays human-shaped instead of firing on every merge. Free LLM tiers keep costs at zero for contributors — Groq Llama, Gemini Flash, or local Ollama. Injectable store and LLM interfaces mean CI runs entirely on mocks. Reward: $5 USDC on Base — transparent, on-chain payouts. Contributors can fork, ship, and earn without gatekeepers. Claim the next agent-task at runtime-discovery and register your wallet in the PR body.",
+    "social_card": {
+      "title": "Content-generation agent — auto-posts from bounty outcomes",
+      "subtitle": "$5 USDC — Nexussyn/ai-growth-engine",
+      "footer": "PR #23 merged on Base"
+    },
+    "content_hash": "a3f2c891"
+  },
+  "twitter_posted": false,
+  "rhythm_gate": {
+    "min_reward_usd": 5,
+    "min_hours_between": 6,
+    "skipped_reason": "cadence_or_reward"
+  }
+}

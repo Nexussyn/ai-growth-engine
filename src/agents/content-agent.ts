@@ -36,6 +36,9 @@ export interface LLMProvider {
 export interface ContentStore {
   fetchBounty(bountyId: string): Promise<BountyRecord | null>;
   saveOutreach(bountyId: string, content: ContentOutput): Promise<void>;
+  /** Last successful Twitter auto-post — drives cadence gate in production */
+  fetchLastTwitterPostAt?(): Promise<string | null>;
+  recordTwitterPost?(bountyId: string, tweet: string): Promise<void>;
 }
 
 export interface TwitterPoster {
@@ -194,6 +197,24 @@ export function supabaseStore(db?: SupabaseClient): ContentStore {
         sent_at: new Date().toISOString(),
       });
     },
+    async fetchLastTwitterPostAt() {
+      const { data } = await client
+        .from('outreach_sent')
+        .select('sent_at')
+        .eq('channel', 'content_agent_twitter')
+        .order('sent_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return (data?.sent_at as string | undefined) ?? null;
+    },
+    async recordTwitterPost(bountyId, tweet) {
+      await client.from('outreach_sent').insert({
+        bounty_id: bountyId,
+        channel: 'content_agent_twitter',
+        content: JSON.stringify({ tweet }),
+        sent_at: new Date().toISOString(),
+      });
+    },
   };
 }
 
@@ -224,20 +245,34 @@ export function shouldPostToTwitter(bounty: BountyRecord, gate: PostRhythmGate =
   return true;
 }
 
+/** Merge explicit gate with last tweet timestamp from outreach_sent */
+export async function resolvePostRhythm(
+  store: ContentStore,
+  gate: PostRhythmGate = {},
+): Promise<PostRhythmGate> {
+  if (gate.last_post_at !== undefined || !store.fetchLastTwitterPostAt) return gate;
+  const last = await store.fetchLastTwitterPostAt();
+  return { ...gate, last_post_at: last };
+}
+
 /** Issue scope: optionally post when credentials are configured */
 export async function postToTwitterIfConfigured(
   content: ContentOutput,
   poster?: TwitterPoster | null,
   bounty?: BountyRecord,
   rhythm?: PostRhythmGate,
+  store?: ContentStore,
 ): Promise<boolean> {
   const tw = poster === undefined ? twitterFromEnv() : poster;
   if (!tw) return false;
-  if (bounty && rhythm !== undefined && !shouldPostToTwitter(bounty, rhythm)) return false;
-  if (bounty && rhythm === undefined && !shouldPostToTwitter(bounty)) return false;
+  const gate = bounty && store ? await resolvePostRhythm(store, rhythm ?? {}) : (rhythm ?? {});
+  if (bounty && !shouldPostToTwitter(bounty, gate)) return false;
   await tw.post(content.tweet);
   for (const segment of content.thread.slice(1)) {
     await tw.post(segment);
+  }
+  if (store?.recordTwitterPost && bounty) {
+    await store.recordTwitterPost(bounty.id, content.tweet);
   }
   return true;
 }
@@ -318,27 +353,33 @@ export async function generateContent(
 
   const autoPost = options.auto_post_twitter !== false;
   if (autoPost && Deno.env.get('TWITTER_AUTO_POST') !== '0') {
-    await postToTwitterIfConfigured(content, options.twitter, bounty, options.post_rhythm).catch(
-      () => false,
-    );
+    await postToTwitterIfConfigured(
+      content,
+      options.twitter,
+      bounty,
+      options.post_rhythm,
+      store,
+    ).catch(() => false);
   }
 
   return content;
 }
 
-// Edge Function entry point
-Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
-  try {
-    const { bounty_id } = await req.json();
-    if (!bounty_id) {
-      return new Response(JSON.stringify({ error: 'bounty_id required' }), { status: 400 });
+// Edge Function entry point — only when executed directly, not when imported by tests
+if (import.meta.main) {
+  Deno.serve(async (req: Request) => {
+    if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+    try {
+      const { bounty_id } = await req.json();
+      if (!bounty_id) {
+        return new Response(JSON.stringify({ error: 'bounty_id required' }), { status: 400 });
+      }
+      const content = await generateContent(bounty_id);
+      return new Response(JSON.stringify({ ok: true, content }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
     }
-    const content = await generateContent(bounty_id);
-    return new Response(JSON.stringify({ ok: true, content }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
-  }
-});
+  });
+}
