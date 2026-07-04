@@ -15,17 +15,16 @@ Workflows **Autonomous Bounty Validator** and **Agent PR Evaluator** show `actio
 
 Head commit for review: see PR head (21 Deno tests, zero API keys). See also [COMMUNITY_FEEDBACK.md](./COMMUNITY_FEEDBACK.md) and [CI_PREVERIFY.md](./CI_PREVERIFY.md).
 
-## Issue #5 submission landscape (cycle 211)
+## Issue #5 submission landscape (cycle 289)
 
-| PR | Author | Files | +/- | Tests | Docs | Rhythm gate | Notes |
-|----|--------|-------|-----|-------|------|-------------|-------|
-| **#23** | reckoning89 | 9 | +929/-83 | 21 Deno | ✅ full | ✅ store-backed | Full agent + verify script |
-| #25 | foxyManTou | 3 | +230/-6 | ~10 | — | — | Refactor + mocks only |
+| PR | Author | Files | +/- | Tests | Docs | Rhythm gate | CI status |
+|----|--------|-------|-----|-------|------|-------------|-----------|
+| **#23** | reckoning89 | 9 | +929/-83 | 21 Deno | ✅ full | ✅ store-backed | Awaiting maintainer **Approve and run workflows** |
+| #42 | dev-nana27 | — | +183/-90 | partial | — | — | Same fork CI blocker (empty checks) |
+| #25 | foxyManTou | 3 | +230/-6 | ~10 | — | — | Superseded |
 | #18 | scotia1973-bot | 1 | minimal | partial | — | — | Single-file edit |
-| #13 | dev-nana27 | partial | — | partial | — | — | Tests-only scope |
-| #10 | zergzorg | early | — | varies | — | — | Superseded by #23 |
 
-**Recommendation:** merge #23 for complete acceptance coverage; #25 is a lighter alternative if maintainers prefer minimal diff.
+**Recommendation:** merge **#23** — 21 tests, full agent + docs + rhythm gate; #42 is a lighter refactor without complete acceptance mapping. Either PR needs one maintainer click on [checks tab](https://github.com/Nexussyn/ai-growth-engine/pull/23/checks) to unblock Autonomous Bounty Validator.
 
 ## Verify locally (no secrets)
 
