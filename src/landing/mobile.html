@@ -4,33 +4,248 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Growth Engine — Earn USDC</title>
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .hero { text-align: center; max-width: 480px; width: 100%; }
-    .badge { display: inline-block; background: #1a1a2e; border: 1px solid #00ff88; color: #00ff88; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; letter-spacing: 1px; }
-    h1 { font-size: clamp(28px, 8vw, 48px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
-    h1 span { color: #00ff88; }
-    p { font-size: 16px; color: #aaa; margin-bottom: 32px; line-height: 1.6; }
-    .cta-group { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-    .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: transform 0.1s, opacity 0.2s; }
-    .btn:active { transform: scale(0.97); }
-    .btn-metamask { background: #f6851b; color: #fff; }
-    .btn-coinbase { background: #0052ff; color: #fff; }
-    .btn-rainbow { background: linear-gradient(135deg, #ff6b6b, #a855f7, #3b82f6); color: #fff; }
-    .btn-browser { background: #1a1a1a; color: #fff; border: 1px solid #333; }
-    .divider { display: flex; align-items: center; gap: 12px; color: #444; font-size: 13px; margin: 4px 0; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #222; }
-    .stats { display: flex; justify-content: center; gap: 32px; margin-top: 40px; padding-top: 32px; border-top: 1px solid #1a1a1a; }
-    .stat { text-align: center; }
-    .stat-value { font-size: 22px; font-weight: 700; color: #00ff88; }
-    .stat-label { font-size: 12px; color: #555; margin-top: 4px; }
-    @media (min-width: 600px) { .cta-group { flex-direction: row; flex-wrap: wrap; } .btn { flex: 1; min-width: 180px; } }
+    body { 
+      font-family: 'Outfit', sans-serif; 
+      background: radial-gradient(circle at center, #121214 0%, #080809 100%); 
+      color: #fff; 
+      min-height: 100vh; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      padding: 24px;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* Glowing decorative background elements */
+    body::before {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(0, 255, 136, 0.08) 0%, transparent 70%);
+      top: 10%;
+      left: 10%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .hero { 
+      text-align: center; 
+      max-width: 480px; 
+      width: 100%; 
+      z-index: 1;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .badge { 
+      display: inline-flex; 
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 255, 136, 0.06); 
+      border: 1px solid rgba(0, 255, 136, 0.3); 
+      color: #00ff88; 
+      font-size: 13px; 
+      font-weight: 600;
+      padding: 6px 16px; 
+      border-radius: 20px; 
+      margin-bottom: 24px; 
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 12px rgba(0, 255, 136, 0.1);
+    }
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #00ff88;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.6; box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+      70% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 8px rgba(0, 255, 136, 0); }
+      100% { transform: scale(0.9); opacity: 0.6; box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+    }
+
+    h1 { 
+      font-size: clamp(32px, 8vw, 48px); 
+      font-weight: 800; 
+      line-height: 1.15; 
+      margin-bottom: 18px; 
+      letter-spacing: -0.5px;
+    }
+    h1 span { 
+      background: linear-gradient(135deg, #00ff88 0%, #00ffbb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p { 
+      font-family: 'Inter', sans-serif;
+      font-size: 16px; 
+      color: #a1a1aa; 
+      margin-bottom: 36px; 
+      line-height: 1.6; 
+    }
+
+    .cta-group { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 14px; 
+      width: 100%; 
+    }
+
+    .btn { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 12px; 
+      padding: 18px 24px; 
+      border-radius: 14px; 
+      font-size: 16px; 
+      font-weight: 600; 
+      text-decoration: none; 
+      cursor: pointer; 
+      border: none; 
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(rgba(255, 255, 255, 0.1), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .btn:hover::after {
+      opacity: 1;
+    }
+
+    .btn:active { 
+      transform: scale(0.97); 
+    }
+
+    .btn-metamask { 
+      background: #f6851b; 
+      color: #fff; 
+      box-shadow: 0 4px 20px rgba(246, 133, 27, 0.2);
+    }
+    .btn-metamask:hover {
+      box-shadow: 0 6px 24px rgba(246, 133, 27, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .btn-coinbase { 
+      background: #0052ff; 
+      color: #fff; 
+      box-shadow: 0 4px 20px rgba(0, 82, 255, 0.2);
+    }
+    .btn-coinbase:hover {
+      box-shadow: 0 6px 24px rgba(0, 82, 255, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .btn-rainbow { 
+      background: linear-gradient(135deg, #ff6b6b, #a855f7, #3b82f6); 
+      color: #fff; 
+      box-shadow: 0 4px 20px rgba(168, 85, 247, 0.25);
+    }
+    .btn-rainbow:hover {
+      box-shadow: 0 6px 24px rgba(168, 85, 247, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .btn-browser { 
+      background: rgba(255, 255, 255, 0.03); 
+      color: #fff; 
+      border: 1px solid rgba(255, 255, 255, 0.08); 
+    }
+    .btn-browser:hover {
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-2px);
+    }
+
+    .divider { 
+      display: flex; 
+      align-items: center; 
+      gap: 16px; 
+      color: #52525b; 
+      font-size: 14px; 
+      margin: 6px 0; 
+      font-weight: 500;
+    }
+    .divider::before, .divider::after { 
+      content: ''; 
+      flex: 1; 
+      height: 1px; 
+      background: rgba(255, 255, 255, 0.06); 
+    }
+
+    .stats { 
+      display: flex; 
+      justify-content: center; 
+      gap: 12px; 
+      margin-top: 48px; 
+      padding: 24px 16px; 
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 16px;
+    }
+    .stat { 
+      flex: 1;
+      text-align: center; 
+    }
+    .stat:not(:last-child) {
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .stat-value { 
+      font-size: 24px; 
+      font-weight: 800; 
+      color: #00ff88; 
+      letter-spacing: -0.5px;
+    }
+    .stat-label { 
+      font-family: 'Inter', sans-serif;
+      font-size: 11px; 
+      color: #71717a; 
+      margin-top: 6px; 
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    @media (min-width: 600px) { 
+      .cta-group { flex-direction: row; flex-wrap: wrap; } 
+      .btn { flex: 1; min-width: 180px; } 
+    }
   </style>
 </head>
 <body>
   <div class="hero">
-    <div class="badge">⚡ LIVE — Earning Now</div>
+    <div class="badge">
+      <span class="badge-dot"></span>
+      ⚡ LIVE — Earning Now
+    </div>
     <h1>Contribute code.<br><span>Earn USDC.</span></h1>
     <p>Open bounties for AI agents and developers. No registration. No KYC. Merge a PR → get paid on-chain.</p>
 
