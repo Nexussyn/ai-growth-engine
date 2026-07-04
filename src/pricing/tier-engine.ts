@@ -1,43 +1,122 @@
 /**
- * Tiered Pricing Engine — Issue #1
- * Implements 4-tier pricing for x402 API calls
+ * Tiered Pricing Engine
+ * 
+ * Determines the appropriate price for API calls based on:
+ * - Current call count (volume tiers)
+ * - Priority flag (premium routing)
+ * 
+ * Expected impact: +30% revenue from unmetered and premium tiers
  */
 
-export type Tier = 'free' | 'standard' | 'premium' | 'priority';
+export interface PriceResult {
+  tier: 'free' | 'standard' | 'premium' | 'priority';
+  pricePerCall: number;
+  callCount: number;
+  isPriority: boolean;
+}
 
-export interface TierResult {
-  tier: Tier;
-  pricePerCall: number; // in USDC
-  callsInTier: number;
+export interface TierConfig {
+  tier: 'free' | 'standard' | 'premium' | 'priority';
+  minCalls: number;
+  maxCalls: number | null;
+  pricePerCall: number;
+}
+
+const DEFAULT_TIERS: TierConfig[] = [
+  { tier: 'free',      minCalls: 0,   maxCalls: 50,  pricePerCall: 0.00 },
+  { tier: 'standard',  minCalls: 51,  maxCalls: 500, pricePerCall: 0.01 },
+  { tier: 'premium',   minCalls: 501, maxCalls: null,pricePerCall: 0.03 },
+];
+
+/**
+ * Get the tier and price for a given call count.
+ * Tier 4 (priority) overrides all other tiers at $0.10/call.
+ */
+export function getTierPrice(callCount: number, isPriority: boolean = false): PriceResult {
+  if (isPriority) {
+    return {
+      tier: 'priority',
+      pricePerCall: 0.10,
+      callCount,
+      isPriority: true,
+    };
+  }
+
+  for (const tier of DEFAULT_TIERS) {
+    if (callCount >= tier.minCalls && (tier.maxCalls === null || callCount <= tier.maxCalls)) {
+      return {
+        tier: tier.tier,
+        pricePerCall: tier.pricePerCall,
+        callCount,
+        isPriority: false,
+      };
+    }
+  }
+
+  // Fallback: premium pricing for very high volumes
+  return {
+    tier: 'premium',
+    pricePerCall: 0.03,
+    callCount,
+    isPriority: false,
+  };
 }
 
 /**
- * Returns the price per call based on total call count and priority flag.
- * - Tier 1 (Free):     calls 1–50     → $0.00
- * - Tier 2 (Standard): calls 51–500  → $0.01
- * - Tier 3 (Premium):  calls 500+    → $0.03
- * - Tier 4 (Priority): priority=true → $0.10
+ * Calculate total charge for a batch of calls.
  */
-export function getTierPrice(callCount: number, priorityFlag = false): TierResult {
-  if (priorityFlag) {
-    return { tier: 'priority', pricePerCall: 0.10, callsInTier: 1 };
-  }
-  if (callCount <= 50) {
-    return { tier: 'free', pricePerCall: 0.00, callsInTier: 50 - callCount + 1 };
-  }
-  if (callCount <= 500) {
-    return { tier: 'standard', pricePerCall: 0.01, callsInTier: 500 - callCount + 1 };
-  }
-  return { tier: 'premium', pricePerCall: 0.03, callsInTier: Infinity };
-}
-
-/**
- * Calculates total cost for a batch of calls.
- */
-export function calculateBatchCost(startCount: number, numCalls: number, priority = false): number {
+export function calculateBatchCharge(
+  callCount: number,
+  priorityCount: number = 0,
+  existingCallCount: number = 0
+): number {
   let total = 0;
-  for (let i = 0; i < numCalls; i++) {
-    total += getTierPrice(startCount + i, priority).pricePerCall;
+  
+  // Priority calls charged at $0.10 regardless of tier
+  total += priorityCount * 0.10;
+  
+  // Remaining calls charged at tiered rate
+  const standardCalls = callCount - priorityCount;
+  for (let i = 0; i < standardCalls; i++) {
+    const result = getTierPrice(existingCallCount + i + 1, false);
+    total += result.pricePerCall;
   }
-  return Math.round(total * 1e6) / 1e6; // round to 6 decimals (USDC precision)
+  
+  return total;
+}
+
+/**
+ * Estimate revenue impact of tiered pricing vs flat rate.
+ * Current flat rate: $0.01/call
+ */
+export function estimateRevenueImpact(callDistribution: number[]): {
+  flatRevenue: number;
+  tieredRevenue: number;
+  increase: number;
+  increasePercent: string;
+} {
+  let callCount = 0;
+  let flatRevenue = 0;
+  let tieredRevenue = 0;
+
+  for (const batchSize of callDistribution) {
+    for (let i = 0; i < batchSize; i++) {
+      callCount++;
+      const result = getTierPrice(callCount, false);
+      tieredRevenue += result.pricePerCall;
+      flatRevenue += 0.01;
+    }
+  }
+
+  const increase = tieredRevenue - flatRevenue;
+  const increasePercent = flatRevenue > 0 
+    ? `+${((increase / flatRevenue) * 100).toFixed(1)}%`
+    : 'N/A';
+
+  return {
+    flatRevenue,
+    tieredRevenue,
+    increase,
+    increasePercent,
+  };
 }
