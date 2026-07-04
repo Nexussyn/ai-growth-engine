@@ -6,6 +6,15 @@ Quick path for reviewers choosing among multiple `#5` submissions.
 
 Workflows **Autonomous Bounty Validator** and **Agent PR Evaluator** show `action_required` until a maintainer clicks **Approve and run workflows** on the PR checks tab. After approval, validator auto-merges on pass and notifies Supabase for USDC payout.
 
+### One-click path for @Nexussyn
+
+1. Open [PR #23 checks](https://github.com/Nexussyn/ai-growth-engine/pull/23/checks)
+2. On each workflow with yellow **Action required**, click **Approve and run workflows**
+3. Wait ~2 min — **Autonomous Bounty Validator** runs `deno test`, comments pass/fail, and auto-merges on pass
+4. Supabase webhook fires → `$5 USDC` to wallet in PR body
+
+Head commit for review: `2ed4012` (21 Deno tests, zero API keys).
+
 ## Verify locally (no secrets)
 
 ```bash
