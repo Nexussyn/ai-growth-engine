@@ -42,12 +42,24 @@ export interface TwitterPoster {
   post(text: string): Promise<void>;
 }
 
+/** Gate auto-posting by reward + cadence — avoids X throttling on every merge */
+export interface PostRhythmGate {
+  /** Minimum hours since last auto-post (default 6) */
+  min_hours_between?: number;
+  /** Skip Twitter when reward below this USD (default 5) */
+  min_reward_usd?: number;
+  /** ISO timestamp of last successful post, or null if none */
+  last_post_at?: string | null;
+}
+
 export interface GenerateOptions {
   store?: ContentStore;
   llm?: LLMProvider;
   /** When true (default), post tweet+thread if Twitter credentials exist in env */
   auto_post_twitter?: boolean;
   twitter?: TwitterPoster | null;
+  /** Optional cadence gate — not every bounty deserves a tweet */
+  post_rhythm?: PostRhythmGate;
 }
 
 function bountyContext(b: BountyRecord): string {
@@ -200,13 +212,29 @@ export function twitterFromEnv(): TwitterPoster | null {
   };
 }
 
+/** Returns false when cadence/reward gate blocks auto-post (content still saved) */
+export function shouldPostToTwitter(bounty: BountyRecord, gate: PostRhythmGate = {}): boolean {
+  const minReward = gate.min_reward_usd ?? 5;
+  if (bounty.reward_amount < minReward) return false;
+  const minHours = gate.min_hours_between ?? 6;
+  if (gate.last_post_at) {
+    const elapsed = (Date.now() - Date.parse(gate.last_post_at)) / 3_600_000;
+    if (elapsed < minHours) return false;
+  }
+  return true;
+}
+
 /** Issue scope: optionally post when credentials are configured */
 export async function postToTwitterIfConfigured(
   content: ContentOutput,
   poster?: TwitterPoster | null,
+  bounty?: BountyRecord,
+  rhythm?: PostRhythmGate,
 ): Promise<boolean> {
   const tw = poster === undefined ? twitterFromEnv() : poster;
   if (!tw) return false;
+  if (bounty && rhythm !== undefined && !shouldPostToTwitter(bounty, rhythm)) return false;
+  if (bounty && rhythm === undefined && !shouldPostToTwitter(bounty)) return false;
   await tw.post(content.tweet);
   for (const segment of content.thread.slice(1)) {
     await tw.post(segment);
@@ -290,7 +318,9 @@ export async function generateContent(
 
   const autoPost = options.auto_post_twitter !== false;
   if (autoPost && Deno.env.get('TWITTER_AUTO_POST') !== '0') {
-    await postToTwitterIfConfigured(content, options.twitter).catch(() => false);
+    await postToTwitterIfConfigured(content, options.twitter, bounty, options.post_rhythm).catch(
+      () => false,
+    );
   }
 
   return content;

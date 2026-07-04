@@ -4,6 +4,7 @@ import {
   generateContent,
   generate_content,
   postToTwitterIfConfigured,
+  shouldPostToTwitter,
   stableHash,
   type BountyRecord,
   type ContentStore,
@@ -137,7 +138,33 @@ Deno.test('postToTwitterIfConfigured skips when poster is null', async () => {
 Deno.test('postToTwitterIfConfigured posts tweet and thread segments', async () => {
   const posted: string[] = [];
   const poster: TwitterPoster = { post: (t) => { posted.push(t); return Promise.resolve(); } };
-  const out = await buildContent(mockBounty('tw-post', 'Twitter post'), mockLLM({}));
-  assertEquals(await postToTwitterIfConfigured(out, poster), true);
+  const bounty = mockBounty('tw-post', 'Twitter post');
+  const out = await buildContent(bounty, mockLLM({}));
+  assertEquals(await postToTwitterIfConfigured(out, poster, bounty, { min_reward_usd: 1 }), true);
   assertEquals(posted.length, out.thread.length);
+});
+
+Deno.test('shouldPostToTwitter blocks low-reward bounties', () => {
+  const low = mockBounty('low', 'Small bounty');
+  low.reward_amount = 2;
+  assertEquals(shouldPostToTwitter(low, { min_reward_usd: 5 }), false);
+  assertEquals(shouldPostToTwitter(low, { min_reward_usd: 1 }), true);
+});
+
+Deno.test('shouldPostToTwitter enforces min hours between posts', () => {
+  const b = mockBounty('cadence', 'Cadence test');
+  const recent = new Date(Date.now() - 2 * 3_600_000).toISOString();
+  assertEquals(shouldPostToTwitter(b, { last_post_at: recent, min_hours_between: 6 }), false);
+  const old = new Date(Date.now() - 8 * 3_600_000).toISOString();
+  assertEquals(shouldPostToTwitter(b, { last_post_at: old, min_hours_between: 6 }), true);
+});
+
+Deno.test('postToTwitterIfConfigured skips when rhythm gate blocks', async () => {
+  const posted: string[] = [];
+  const poster: TwitterPoster = { post: (t) => { posted.push(t); return Promise.resolve(); } };
+  const bounty = mockBounty('blocked', 'Blocked post');
+  bounty.reward_amount = 1;
+  const out = await buildContent(bounty, mockLLM({}));
+  assertEquals(await postToTwitterIfConfigured(out, poster, bounty), false);
+  assertEquals(posted.length, 0);
 });
