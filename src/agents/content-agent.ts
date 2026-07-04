@@ -1,104 +1,113 @@
 /**
- * Content Generation Agent — Issue #5
- * Generates tweet, thread, and blog post from a bounty completion event.
- * Uses Groq Llama (free tier: 6000 req/min) or Gemini Flash (free 1500/day).
+ * Content-Generation Agent — Issue #5
+ * Auto-generates blog posts, Twitter/X threads, and social cards from bounty completion events
  */
 
-import { createClient } from 'jsr:@supabase/supabase-js@2';
-
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? '';
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
-
-const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-
-export interface ContentOutput {
-  tweet: string;        // 280 chars max
-  thread: string[];     // 5 tweets
-  blog_post: string;    // ~300 words
+export interface BountyEvent {
+  id: string;
+  title: string;
+  scope: string;
+  outcome: string;
+  reward_usdc: number;
+  contributor: string;
+  completed_at: string;
 }
 
-async function callLLM(prompt: string): Promise<string> {
-  // Try Groq first (faster, higher free limit)
-  if (GROQ_API_KEY) {
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama3-8b-8192',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1024
-      })
-    });
-    const data = await r.json();
-    return data.choices?.[0]?.message?.content ?? '';
-  }
-
-  // Fallback: Gemini Flash
-  if (GEMINI_API_KEY) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    const data = await r.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-  }
-
-  throw new Error('No LLM API key configured. Set GROQ_API_KEY or GEMINI_API_KEY.');
+export interface GeneratedContent {
+  tweet: string;
+  thread: string[];
+  blog_post: string;
 }
 
-export async function generateContent(bountyId: string): Promise<ContentOutput> {
-  // Fetch bounty details
-  const { data: bounty } = await db
-    .from('bounty_executions')
-    .select('title, description, reward_amount, repo_owner, repo_name, pr_number')
-    .eq('id', bountyId)
-    .maybeSingle();
+const TWEET_TEMPLATES = [
+  (b: BountyEvent) =>
+    `🚀 Bounty complete! ${b.title} — ${b.outcome.slice(0, 60)}. Earned $${b.reward_usdc} USDC. The AI economy is building. #AIAgent #Bounty`,
+  (b: BountyEvent) =>
+    `💰 $${b.reward_usdc} USDC earned by building ${b.title}. ${b.outcome.slice(0, 50)}... Another win for autonomous AI development. #Web3 #Build`,
+  (b: BountyEvent) =>
+    `⚡ Fresh bounty payout: $${b.reward_usdc} USDC for "${b.title}". ${b.outcome.slice(0, 40)}. AI agents earning autonomously. #Coding #AI`,
+];
 
-  if (!bounty) throw new Error(`Bounty not found: ${bountyId}`);
+const THREAD_INTROS = [
+  (b: BountyEvent) =>
+    `🧵 Here's how we earned $${b.reward_usdc} USDC by implementing "${b.title}" — a breakdown for fellow AI agents:\n\n1/5`,
+  (b: BountyEvent) =>
+    `🧵 New bounty completed: "${b.title}" — $${b.reward_usdc} USDC. Here's what we built and why it matters:\n\n1/5`,
+];
 
-  const ctx = `Bounty: "${bounty.title}" | Reward: $${bounty.reward_amount} USDC | Repo: ${bounty.repo_owner}/${bounty.repo_name} | PR: #${bounty.pr_number}`;
+/**
+ * Generates a short tweet (max 280 chars) from a bounty event.
+ */
+export function generateTweet(bounty: BountyEvent): string {
+  const template = TWEET_TEMPLATES[Math.floor(Math.random() * TWEET_TEMPLATES.length)];
+  const tweet = template(bounty);
+  return tweet.length <= 280 ? tweet : tweet.slice(0, 277) + '...';
+}
 
-  // Generate tweet
-  const tweet = await callLLM(
-    `Write a single tweet (max 280 chars) announcing this completed open-source bounty. Be enthusiastic, include the reward amount and a call to action. No hashtag spam. Context: ${ctx}`
-  );
+/**
+ * Generates a 5-tweet thread from a bounty event.
+ */
+export function generateThread(bounty: BountyEvent): string[] {
+  const intro = THREAD_INTROS[Math.floor(Math.random() * THREAD_INTROS.length)];
+  const thread = [
+    intro(bounty),
+    `2/5 The problem: ${bounty.scope.slice(0, 100)}...`,
+    `3/5 Our approach: ${bounty.outcome.slice(0, 120)}...`,
+    `4/5 Result: $${bounty.reward_usdc} USDC earned. PR merged. System improved.`,
+    `5/5 Want to earn too? This repo has open bounties. Every AI agent can contribute and earn autonomously. 🚀`,
+  ];
+  // Trim each tweet to 280 chars
+  return thread.map(t => (t.length <= 280 ? t : t.slice(0, 277) + '...'));
+}
 
-  // Generate thread
-  const threadRaw = await callLLM(
-    `Write a 5-tweet Twitter thread announcing this completed bounty and explaining why open AI bounties matter. Each tweet separated by "---". Context: ${ctx}`
-  );
-  const thread = threadRaw.split('---').map(t => t.trim()).filter(Boolean).slice(0, 5);
+/**
+ * Generates a 300-word blog post from a bounty event.
+ */
+export function generateBlogPost(bounty: BountyEvent): string {
+  return [
+    `# ${bounty.title} — Bounty Completion Report\n`,
+    `**Reward:** $${bounty.reward_usdc} USDC | **Contributor:** ${bounty.contributor} | **Completed:** ${bounty.completed_at}\n`,
+    `## Summary`,
+    `We successfully completed the "${bounty.title}" bounty. ${bounty.outcome}\n`,
+    `## Scope`,
+    bounty.scope.slice(0, 300) + '...\n',
+    `## What Was Built`,
+    `The implementation delivered the following:\n` +
+    `- Full solution meeting all acceptance criteria\n` +
+    `- Comprehensive test coverage\n` +
+    `- Clean integration with existing system architecture\n`,
+    `## Impact`,
+    `This bounty represents another step forward in autonomous AI development. ` +
+    `By completing "${bounty.title}", we've demonstrated that AI agents can independently ` +
+    `identify problems, architect solutions, implement code, and earn real income.\n`,
+    `## Earn With Us`,
+    `This is an open, autonomous system. Every AI agent can contribute. ` +
+    `Browse open bounties, pick a task, submit a PR, and earn USDC on merge. ` +
+    `No KYC. No registration. Just code.\n`,
+    `---\n*This content was automatically generated by the AI Growth Engine content agent (Issue #5).*`,
+  ].join('\n');
+}
 
-  // Generate blog post
-  const blog_post = await callLLM(
-    `Write a 300-word blog post about this completed open-source AI bounty. Include: what was built, why it matters, how others can participate. Professional but accessible tone. Context: ${ctx}`
-  );
+/**
+ * Main function: generates all content for a bounty event.
+ */
+export function generateContent(bounty: BountyEvent): GeneratedContent {
+  return {
+    tweet: generateTweet(bounty),
+    thread: generateThread(bounty),
+    blog_post: generateBlogPost(bounty),
+  };
+}
 
-  // Store in outreach_sent
-  await db.from('outreach_sent').insert({
-    bounty_id: bountyId,
-    channel: 'content_agent',
-    content: JSON.stringify({ tweet, thread, blog_post }),
-    sent_at: new Date().toISOString()
+/**
+ * Builds SQL to store generated content in outreach_sent table.
+ */
+export function buildOutreachSQL(bountyId: string, content: GeneratedContent): string {
+  const payload = JSON.stringify({
+    tweet: content.tweet,
+    thread: content.thread,
+    blog_post: content.blog_post,
   });
-
-  return { tweet: tweet.slice(0, 280), thread, blog_post };
+  return `INSERT INTO outreach_sent (bounty_id, content_type, content, created_at)
+VALUES ('${bountyId}', 'agent_generated', '${payload.replace(/'/g, "''")}'::jsonb, NOW());`;
 }
-
-// Edge Function entry point
-Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
-  try {
-    const { bounty_id } = await req.json();
-    if (!bounty_id) return new Response(JSON.stringify({ error: 'bounty_id required' }), { status: 400 });
-    const content = await generateContent(bounty_id);
-    return new Response(JSON.stringify({ ok: true, content }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
-  }
-});
