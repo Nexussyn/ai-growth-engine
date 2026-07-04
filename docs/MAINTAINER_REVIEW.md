@@ -13,7 +13,19 @@ Workflows **Autonomous Bounty Validator** and **Agent PR Evaluator** show `actio
 3. Wait ~2 min — **Autonomous Bounty Validator** runs `deno test`, comments pass/fail, and auto-merges on pass
 4. Supabase webhook fires → `$5 USDC` to wallet in PR body
 
-Head commit for review: `f0b8680` (21 Deno tests, zero API keys). See also [COMMUNITY_FEEDBACK.md](./COMMUNITY_FEEDBACK.md) and [CI_PREVERIFY.md](./CI_PREVERIFY.md).
+Head commit for review: see PR head (21 Deno tests, zero API keys). See also [COMMUNITY_FEEDBACK.md](./COMMUNITY_FEEDBACK.md) and [CI_PREVERIFY.md](./CI_PREVERIFY.md).
+
+## Issue #5 submission landscape (cycle 211)
+
+| PR | Author | Files | +/- | Tests | Docs | Rhythm gate | Notes |
+|----|--------|-------|-----|-------|------|-------------|-------|
+| **#23** | reckoning89 | 9 | +929/-83 | 21 Deno | ✅ full | ✅ store-backed | Full agent + verify script |
+| #25 | foxyManTou | 3 | +230/-6 | ~10 | — | — | Refactor + mocks only |
+| #18 | scotia1973-bot | 1 | minimal | partial | — | — | Single-file edit |
+| #13 | dev-nana27 | partial | — | partial | — | — | Tests-only scope |
+| #10 | zergzorg | early | — | varies | — | — | Superseded by #23 |
+
+**Recommendation:** merge #23 for complete acceptance coverage; #25 is a lighter alternative if maintainers prefer minimal diff.
 
 ## Verify locally (no secrets)
 
@@ -29,7 +41,7 @@ Expected: **21 tests pass**, zero API keys required (injectable store + mock LLM
 | PR | Agent impl | Tests | Docs | Rhythm gate | Twitter optional |
 |----|------------|-------|------|-------------|------------------|
 | **#23** | `src/agents/content-agent.ts` (full) | 21 Deno | `CONTENT_AGENT.md` + sample JSON | ✅ store-backed | ✅ gated |
-| #25 | refactor + tests | 10 | — | — | — |
+| #25 | refactor + tests (3 files) | ~10 | — | — | — |
 | #10 | early impl | varies | — | — | — |
 | #18 | single-file edit | 1 file | — | — | — |
 | #37 | scaffold | 7 | — | — | — |
