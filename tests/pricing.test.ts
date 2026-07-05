@@ -29,3 +29,44 @@ Deno.test('Batch cost calculation', () => {
   // 1 standard call
   assertEquals(calculateBatchCost(51, 1), 0.01);
 });
+
+Deno.test('Batch cost crosses free and standard tiers exactly', () => {
+  // Calls 49-50 are free, 51-53 are standard.
+  assertEquals(calculateBatchCost(49, 5), 0.03);
+});
+
+Deno.test('Batch cost crosses standard and premium tiers exactly', () => {
+  // Calls 499-500 are standard, 501-502 are premium.
+  assertEquals(calculateBatchCost(499, 4), 0.08);
+});
+
+Deno.test('Priority batch cost applies to every call', () => {
+  assertEquals(calculateBatchCost(1, 3, true), 0.3);
+  assertEquals(calculateBatchCost(499, 4, true), 0.4);
+});
+
+Deno.test('Pricing rejects impossible call counts', () => {
+  const invalid = [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY];
+
+  for (const value of invalid) {
+    try {
+      getTierPrice(value);
+      throw new Error(`expected getTierPrice(${value}) to fail`);
+    } catch (error) {
+      assertEquals(error instanceof RangeError, true);
+    }
+  }
+});
+
+Deno.test('Batch cost rejects invalid ranges but allows zero calls', () => {
+  assertEquals(calculateBatchCost(1, 0), 0);
+
+  for (const args of [[0, 1], [1, -1], [1.2, 1], [1, 1.2]]) {
+    try {
+      calculateBatchCost(args[0], args[1]);
+      throw new Error(`expected calculateBatchCost(${args.join(', ')}) to fail`);
+    } catch (error) {
+      assertEquals(error instanceof RangeError, true);
+    }
+  }
+});
