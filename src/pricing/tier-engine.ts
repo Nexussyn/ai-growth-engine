@@ -11,6 +11,14 @@ export interface TierResult {
   callsInTier: number;
 }
 
+function assertWholeCallCount(value: number, name: string, allowZero = false): void {
+  const minimum = allowZero ? 0 : 1;
+
+  if (!Number.isSafeInteger(value) || value < minimum) {
+    throw new RangeError(`${name} must be a safe integer >= ${minimum}`);
+  }
+}
+
 /**
  * Returns the price per call based on total call count and priority flag.
  * - Tier 1 (Free):     calls 1–50     → $0.00
@@ -19,6 +27,8 @@ export interface TierResult {
  * - Tier 4 (Priority): priority=true → $0.10
  */
 export function getTierPrice(callCount: number, priorityFlag = false): TierResult {
+  assertWholeCallCount(callCount, 'callCount');
+
   if (priorityFlag) {
     return { tier: 'priority', pricePerCall: 0.10, callsInTier: 1 };
   }
@@ -35,6 +45,9 @@ export function getTierPrice(callCount: number, priorityFlag = false): TierResul
  * Calculates total cost for a batch of calls.
  */
 export function calculateBatchCost(startCount: number, numCalls: number, priority = false): number {
+  assertWholeCallCount(startCount, 'startCount');
+  assertWholeCallCount(numCalls, 'numCalls', true);
+
   let total = 0;
   for (let i = 0; i < numCalls; i++) {
     total += getTierPrice(startCount + i, priority).pricePerCall;
