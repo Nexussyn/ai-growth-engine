@@ -17,9 +17,12 @@ jobs:
       - name: Forward event to Supabase
         env:
           SUPABASE_WEBHOOK_URL: https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/github-webhook
+          EVENT_PAYLOAD: ${{ toJson(github.event) }}
         run: |
+          printenv EVENT_PAYLOAD > payload.json
           curl -s -X POST "$SUPABASE_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -H "x-github-event: ${{ github.event_name }}" \
             -H "x-github-delivery: ${{ github.run_id }}-${{ github.run_attempt }}" \
-            -d '${{ toJson(github.event) }}'
+            -d @payload.json
+          rm payload.json
