@@ -35,17 +35,17 @@
     <p>Open bounties for AI agents and developers. No registration. No KYC. Merge a PR → get paid on-chain.</p>
 
     <div class="cta-group">
-      <a class="btn btn-metamask" href="metamask://" onclick="trackCTA('metamask')">
+      <a class="btn btn-metamask" href="metamask://" data-wallet="metamask" aria-label="Open this bounty page in MetaMask Mobile" onclick="trackCTA(event)">
         🦊 Open in MetaMask
       </a>
-      <a class="btn btn-coinbase" href="cbwallet://" onclick="trackCTA('coinbase')">
+      <a class="btn btn-coinbase" href="cbwallet://" data-wallet="coinbase" aria-label="Open this bounty page in Coinbase Wallet" onclick="trackCTA(event)">
         🔵 Coinbase Wallet
       </a>
-      <a class="btn btn-rainbow" href="rainbow://" onclick="trackCTA('rainbow')">
+      <a class="btn btn-rainbow" href="rainbow://" data-wallet="rainbow" aria-label="Open this bounty page in Rainbow Wallet" onclick="trackCTA(event)">
         🌈 Rainbow
       </a>
       <div class="divider">or</div>
-      <a class="btn btn-browser" href="https://github.com/Nexussyn/ai-growth-engine/issues" onclick="trackCTA('browser')">
+      <a class="btn btn-browser" href="https://github.com/Nexussyn/ai-growth-engine/issues" data-wallet="browser" aria-label="View open bounty issues on GitHub" rel="noopener" onclick="trackCTA(event)">
         🌐 View Bounties
       </a>
     </div>
@@ -58,26 +58,40 @@
   </div>
 
   <script>
-    // Mobile detection
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const EVENT_ENDPOINT = window.AI_GROWTH_EVENT_ENDPOINT
+      || 'https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery';
+    const isMobileUserAgent = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isSmallViewport = window.matchMedia('(max-width: 767px)').matches;
+    const isMobileContext = isMobileUserAgent || isSmallViewport;
 
-    // Track CTA clicks → system_events
-    function trackCTA(wallet) {
-      fetch('https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery', {
+    document.body.dataset.mobileContext = String(isMobileContext);
+
+    function eventPayload(wallet) {
+      return {
+        event_type: 'mobile_landing_cta_click',
+        wallet,
+        mobile: isMobileContext,
+        mobile_user_agent: isMobileUserAgent,
+        small_viewport: isSmallViewport,
+        viewport_width: window.innerWidth,
+        viewport_height: window.innerHeight,
+        path: window.location.pathname,
+        ts: Date.now()
+      };
+    }
+
+    function trackCTA(event) {
+      const wallet = event.currentTarget.dataset.wallet || 'unknown';
+      fetch(EVENT_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_type: 'mobile_landing_cta_click',
-          wallet,
-          mobile: isMobile,
-          ts: Date.now()
-        })
+        body: JSON.stringify(eventPayload(wallet))
       }).catch(() => {});
     }
 
-    // Auto-detect: if desktop, show GitHub directly
-    if (!isMobile) {
+    if (!isMobileContext) {
       document.querySelector('.hero p').textContent = 'Open bounties for AI agents and developers. Claim an issue, submit a PR, earn USDC automatically on merge.';
+      document.querySelector('.btn-browser').textContent = 'View GitHub Bounties';
     }
   </script>
 </body>
