@@ -1,84 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Growth Engine — Earn USDC</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .hero { text-align: center; max-width: 480px; width: 100%; }
-    .badge { display: inline-block; background: #1a1a2e; border: 1px solid #00ff88; color: #00ff88; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; letter-spacing: 1px; }
-    h1 { font-size: clamp(28px, 8vw, 48px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
-    h1 span { color: #00ff88; }
-    p { font-size: 16px; color: #aaa; margin-bottom: 32px; line-height: 1.6; }
-    .cta-group { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-    .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: transform 0.1s, opacity 0.2s; }
-    .btn:active { transform: scale(0.97); }
-    .btn-metamask { background: #f6851b; color: #fff; }
-    .btn-coinbase { background: #0052ff; color: #fff; }
-    .btn-rainbow { background: linear-gradient(135deg, #ff6b6b, #a855f7, #3b82f6); color: #fff; }
-    .btn-browser { background: #1a1a1a; color: #fff; border: 1px solid #333; }
-    .divider { display: flex; align-items: center; gap: 12px; color: #444; font-size: 13px; margin: 4px 0; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #222; }
-    .stats { display: flex; justify-content: center; gap: 32px; margin-top: 40px; padding-top: 32px; border-top: 1px solid #1a1a1a; }
-    .stat { text-align: center; }
-    .stat-value { font-size: 22px; font-weight: 700; color: #00ff88; }
-    .stat-label { font-size: 12px; color: #555; margin-top: 4px; }
-    @media (min-width: 600px) { .cta-group { flex-direction: row; flex-wrap: wrap; } .btn { flex: 1; min-width: 180px; } }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Connect Your Wallet</title>
+<meta name="description" content="Connect your crypto wallet in seconds. MetaMask, Coinbase Wallet, and Rainbow supported.">
+<style>
+  :root {
+    --bg: #0b0c10;
+    --fg: #ffffff;
+    --accent: #6c5ce7;
+    --muted: #8a8f98;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  .container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+  }
+  .hero {
+    max-width: 480px;
+    width: 100%;
+  }
+  h1 {
+    font-size: 28px;
+    line-height: 1.3;
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+  p.sub {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 28px;
+  }
+  .cta-primary {
+    display: block;
+    width: 100%;
+    padding: 16px 20px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-bottom: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cta-primary:active { opacity: 0.85; }
+  .wallet-list {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .wallet-list.show { display: flex; }
+  .wallet-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px;
+    background: #1a1b21;
+    border: 1px solid #2b2d36;
+    border-radius: 10px;
+    color: var(--fg);
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wallet-btn:active { background: #24252c; }
+  .desktop-note {
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .hidden { display: none !important; }
+</style>
 </head>
 <body>
+<div class="container">
   <div class="hero">
-    <div class="badge">⚡ LIVE — Earning Now</div>
-    <h1>Contribute code.<br><span>Earn USDC.</span></h1>
-    <p>Open bounties for AI agents and developers. No registration. No KYC. Merge a PR → get paid on-chain.</p>
+    <h1 id="headline">Connect Your Wallet, Get Started Instantly</h1>
+    <p class="sub" id="subline">One tap. No downloads required if you already have a wallet app.</p>
 
-    <div class="cta-group">
-      <a class="btn btn-metamask" href="metamask://" onclick="trackCTA('metamask')">
-        🦊 Open in MetaMask
-      </a>
-      <a class="btn btn-coinbase" href="cbwallet://" onclick="trackCTA('coinbase')">
-        🔵 Coinbase Wallet
-      </a>
-      <a class="btn btn-rainbow" href="rainbow://" onclick="trackCTA('rainbow')">
-        🌈 Rainbow
-      </a>
-      <div class="divider">or</div>
-      <a class="btn btn-browser" href="https://github.com/Nexussyn/ai-growth-engine/issues" onclick="trackCTA('browser')">
-        🌐 View Bounties
-      </a>
+    <button class="cta-primary" id="mainCta">Connect Wallet</button>
+
+    <div class="wallet-list" id="walletList">
+      <a class="wallet-btn" data-wallet="metamask" id="metamaskBtn" href="#">MetaMask</a>
+      <a class="wallet-btn" data-wallet="coinbase" id="coinbaseBtn" href="#">Coinbase Wallet</a>
+      <a class="wallet-btn" data-wallet="rainbow" id="rainbowBtn" href="#">Rainbow</a>
     </div>
 
-    <div class="stats">
-      <div class="stat"><div class="stat-value">$50</div><div class="stat-label">USDC Available</div></div>
-      <div class="stat"><div class="stat-value">5</div><div class="stat-label">Open Issues</div></div>
-      <div class="stat"><div class="stat-value">0%</div><div class="stat-label">Fee</div></div>
-    </div>
+    <p class="desktop-note hidden" id="desktopNote">
+      Open this page on your phone or use a browser extension wallet to connect.
+    </p>
   </div>
+</div>
 
-  <script>
-    // Mobile detection
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+<script>
+  // Minimal, deferred, non-blocking logic for detection + deep links + tracking.
 
-    // Track CTA clicks → system_events
-    function trackCTA(wallet) {
-      fetch('https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_type: 'mobile_landing_cta_click',
-          wallet,
-          mobile: isMobile,
-          ts: Date.now()
-        })
-      }).catch(() => {});
+  var SUPABASE_URL = window.__SUPABASE_URL__ || '';
+  var SUPABASE_ANON_KEY = window.__SUPABASE_ANON_KEY__ || '';
+
+  function isMobileUA() {
+    var ua = navigator.userAgent || navigator.vendor || window.opera || '';
+    var mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+    return mobileRegex.test(ua) || window.innerWidth <= 768;
+  }
+
+  var isMobile = isMobileUA();
+
+  var headline = document.getElementById('headline');
+  var subline = document.getElementById('subline');
+  var mainCta = document.getElementById('mainCta');
+  var walletList = document.getElementById('walletList');
+  var desktopNote = document.getElementById('desktopNote');
+
+  var DEEP_LINKS = {
+    metamask: 'metamask://',
+    coinbase: 'cbwallet://',
+    rainbow: 'rainbow://'
+  };
+
+  var FALLBACK_STORE_LINKS = {
+    metamask: 'https://metamask.app.link/',
+    coinbase: 'https://go.cb-w.com/',
+    rainbow: 'https://rnbwapp.com/'
+  };
+
+  function trackEvent(walletName) {
+    var payload = {
+      event_type: 'mobile_landing_cta_click',
+      context: isMobile ? 'mobile' : 'desktop',
+      wallet: walletName || null,
+      user_agent: navigator.userAgent,
+      screen_width: window.innerWidth,
+      created_at: new Date().toISOString()
+    };
+
+    // Best-effort, non-blocking POST to Supabase system_events table.
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      try {
+        fetch(SUPABASE_URL + '/rest/v1/system_events', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify(payload),
+          keepalive: true
+        }).catch(function () {});
+      } catch (e) {
+        // swallow — tracking must never block UX
+      }
+    } else if (window.gtag) {
+      // Optional analytics fallback if gtag is present.
+      window.gtag('event', 'mobile_landing_cta_click', payload);
     }
+  }
 
-    // Auto-detect: if desktop, show GitHub directly
-    if (!isMobile) {
-      document.querySelector('.hero p').textContent = 'Open bounties for AI agents and developers. Claim an issue, submit a PR, earn USDC automatically on merge.';
+  function openDeepLink(walletKey) {
+    var deepLink = DEEP_LINKS[walletKey];
+    var fallback = FALLBACK_STORE_LINKS[walletKey];
+    var start = Date.now();
+
+    window.location.href = deepLink;
+
+    setTimeout(function () {
+      // If deep link didn't open the app (still on page), fall back to store.
+      if (Date.now() - start < 2000 && document.hasFocus()) {
+        window.location.href = fallback;
+      }
+    }, 1200);
+  }
+
+  function bindWalletButtons() {
+    ['metamask', 'coinbase', 'rainbow'].forEach(function (key) {
+      var el = document.getElementById(key + 'Btn');
+      if (!el) return;
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        trackEvent(key);
+        openDeepLink(key);
+      });
+    });
+  }
+
+  function init() {
+    if (isMobile) {
+      headline.textContent = 'Connect Your Wallet in One Tap';
+      subline.textContent = 'Choose your wallet app below to continue.';
+      mainCta.classList.add('hidden');
+      walletList.classList.add('show');
+      bindWalletButtons();
+    } else {
+      walletList.classList.remove('show');
+      desktopNote.classList.remove('hidden');
+      mainCta.addEventListener('click', function () {
+        trackEvent(null);
+        desktopNote.classList.remove('hidden');
+      });
     }
-  </script>
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+</script>
 </body>
 </html>
