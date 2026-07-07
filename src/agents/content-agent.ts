@@ -10,6 +10,7 @@ export interface ContentOutput {
   tweet: string;        // 280 chars max
   thread: string[];     // 5 tweets
   blog_post: string;    // ~300 words
+  social_card: string;  // short share-card copy
 }
 
 export interface BountyContext {
@@ -38,6 +39,10 @@ export function bountyContextLine(bounty: BountyContext): string {
 
 export function normalizeTweet(text: string): string {
   return text.replace(/\s+/g, ' ').trim().slice(0, 280);
+}
+
+export function normalizeSocialCard(text: string): string {
+  return text.replace(/\s+/g, ' ').trim().slice(0, 160);
 }
 
 export function normalizeThread(raw: string, context: BountyContext): string[] {
@@ -129,17 +134,24 @@ export async function generateContent(bountyId: string): Promise<ContentOutput> 
     `Write a 300-word blog post about this completed open-source AI bounty. Include: what was built, why it matters, how others can participate. Professional but accessible tone. Context: ${ctx}`
   )).trim();
 
+  // Generate social card copy
+  const social_card = normalizeSocialCard(await callLLM(
+    `Write concise social-card copy for this completed open-source bounty. Keep it under 160 characters, include the result, and avoid hashtags. Context: ${ctx}`
+  ));
+
   // Store in outreach_sent
   const { error } = await db.from('outreach_sent').insert({
     bounty_id: bountyId,
     channel: 'content_agent',
-    content: JSON.stringify({ tweet, thread, blog_post }),
+    content: JSON.stringify({ tweet, thread, blog_post, social_card }),
     sent_at: new Date().toISOString()
   });
   if (error) throw error;
 
-  return { tweet, thread, blog_post };
+  return { tweet, thread, blog_post, social_card };
 }
+
+export const generate_content = generateContent;
 
 export function createContentAgentHandler() {
   return async (req: Request): Promise<Response> => {

@@ -1,6 +1,9 @@
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import {
   bountyContextLine,
+  generate_content,
+  generateContent,
+  normalizeSocialCard,
   normalizeThread,
   normalizeTweet,
   type BountyContext,
@@ -28,6 +31,13 @@ Deno.test('normalizeTweet collapses whitespace and enforces 280 characters', () 
   assertEquals(normalizeTweet(long).length, 280);
 });
 
+Deno.test('normalizeSocialCard collapses whitespace and enforces compact card copy', () => {
+  const long = `  ${'card '.repeat(60)}  `;
+
+  assertEquals(normalizeSocialCard('ship\nproof\nfast'), 'ship proof fast');
+  assertEquals(normalizeSocialCard(long).length, 160);
+});
+
 Deno.test('normalizeThread parses separators and returns five tweets', () => {
   const thread = normalizeThread('one---two---three', context);
 
@@ -44,4 +54,8 @@ Deno.test('normalizeThread handles numbered LLM output', () => {
   assertEquals(thread.length, 5);
   assertEquals(thread[0], 'First update');
   assertEquals(thread[4], 'Fifth update');
+});
+
+Deno.test('generate_content exports the issue acceptance entry point', () => {
+  assertEquals(generate_content, generateContent);
 });
