@@ -1,47 +1,62 @@
--- Migration: Referral system (Issue #2)
--- Idempotent
+-- Migration: add_referral_system.sql
+-- Issue: [AGENT-TASK] Implement referral reward loop — +20% conversion
+-- Creates tables required for the referral reward loop.
 
+-- Table: referral_codes
+-- Each row represents a unique referral code owned by a user.
 CREATE TABLE IF NOT EXISTS referral_codes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL DEFAULT substring(gen_random_uuid()::text, 1, 8),
-  owner_id TEXT NOT NULL,
-  uses INT DEFAULT 0,
-  credits_awarded INT DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  code TEXT PRIMARY KEY,
+  owner_id UUID NOT NULL,
+  uses INTEGER NOT NULL DEFAULT 0,
+  credits_awarded INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS referral_conversions (
+CREATE INDEX IF NOT EXISTS idx_referral_codes_owner_id ON referral_codes (owner_id);
+
+-- Table: referral_redemptions
+-- Tracks which users have redeemed which referral codes to guarantee idempotency
+-- (a given referral code cannot be used twice by the same new user).
+CREATE TABLE IF NOT EXISTS referral_redemptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  referral_code TEXT NOT NULL REFERENCES referral_codes(code),
-  new_user_id TEXT NOT NULL,
-  converted_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(referral_code, new_user_id)
+  referral_code TEXT NOT NULL REFERENCES referral_codes (code),
+  new_user_id UUID NOT NULL,
+  credits_awarded INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (referral_code, new_user_id)
 );
 
-CREATE OR REPLACE FUNCTION process_referral(p_code TEXT, p_new_user_id TEXT)
-RETURNS JSONB AS $$
-DECLARE
-  v_owner_id TEXT;
-  v_credits INT := 5;
-BEGIN
-  -- Idempotency check
-  IF EXISTS (SELECT 1 FROM referral_conversions WHERE referral_code = p_code AND new_user_id = p_new_user_id) THEN
-    RETURN jsonb_build_object('status', 'already_processed');
-  END IF;
+CREATE INDEX IF NOT EXISTS idx_referral_redemptions_new_user_id ON referral_redemptions (new_user_id);
 
-  SELECT owner_id INTO v_owner_id FROM referral_codes WHERE code = p_code;
-  IF NOT FOUND THEN RETURN jsonb_build_object('status', 'invalid_code'); END IF;
+-- Table: system_events (created if it doesn't already exist elsewhere)
+-- Generic event log used across the platform, including referral_conversion events.
+CREATE TABLE IF NOT EXISTS system_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type TEXT NOT NULL,
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
-  -- Log conversion
-  INSERT INTO referral_conversions (referral_code, new_user_id) VALUES (p_code, p_new_user_id);
+CREATE INDEX IF NOT EXISTS idx_system_events_event_type ON system_events (event_type);
 
-  -- Award credits
-  UPDATE referral_codes SET uses = uses + 1, credits_awarded = credits_awarded + v_credits WHERE code = p_code;
+-- Table: notifications (created if it doesn't already exist elsewhere)
+-- Simple notification queue/table so users see referral conversion notices.
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  read BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
-  -- Log event
-  INSERT INTO system_events (event_type, payload, created_at)
-  VALUES ('referral_conversion', jsonb_build_object('code', p_code, 'new_user', p_new_user_id, 'credits', v_credits), NOW());
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications (user_id);
 
-  RETURN jsonb_build_object('status', 'ok', 'credits_awarded', v_credits, 'owner_id', v_owner_id);
-END;
-$$ LANGUAGE plpgsql;
+-- Table: user_credits (assumed minimal shape; created if not present elsewhere)
+-- Tracks free credit balances per user.
+CREATE TABLE IF NOT EXISTS user_credits (
+  user_id UUID PRIMARY KEY,
+  balance INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
