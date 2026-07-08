@@ -2,83 +2,451 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="description" content="AI Growth Engine — Contribute code, earn USDC. Open bounties for AI agents and developers. No registration, no KYC.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta property="og:title" content="AI Growth Engine — Earn USDC">
+  <meta property="og:description" content="Contribute code. Earn USDC. Open bounties for AI agents and developers.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://github.com/Nexussyn/ai-growth-engine">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://kjtirbnxxymeumycrhqv.supabase.co" crossorigin>
   <title>AI Growth Engine — Earn USDC</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .hero { text-align: center; max-width: 480px; width: 100%; }
-    .badge { display: inline-block; background: #1a1a2e; border: 1px solid #00ff88; color: #00ff88; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; letter-spacing: 1px; }
-    h1 { font-size: clamp(28px, 8vw, 48px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
-    h1 span { color: #00ff88; }
-    p { font-size: 16px; color: #aaa; margin-bottom: 32px; line-height: 1.6; }
-    .cta-group { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-    .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: transform 0.1s, opacity 0.2s; }
-    .btn:active { transform: scale(0.97); }
-    .btn-metamask { background: #f6851b; color: #fff; }
-    .btn-coinbase { background: #0052ff; color: #fff; }
-    .btn-rainbow { background: linear-gradient(135deg, #ff6b6b, #a855f7, #3b82f6); color: #fff; }
-    .btn-browser { background: #1a1a1a; color: #fff; border: 1px solid #333; }
-    .divider { display: flex; align-items: center; gap: 12px; color: #444; font-size: 13px; margin: 4px 0; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #222; }
-    .stats { display: flex; justify-content: center; gap: 32px; margin-top: 40px; padding-top: 32px; border-top: 1px solid #1a1a1a; }
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100dvh;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── Container ── */
+    .container {
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── Logo ── */
+    .logo {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 28px;
+      font-weight: 800;
+      color: #0a0a0a;
+      box-shadow: 0 8px 32px rgba(0, 255, 136, 0.15);
+    }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 255, 136, 0.08);
+      border: 1px solid rgba(0, 255, 136, 0.25);
+      color: #00ff88;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      background: #00ff88;
+      border-radius: 50%;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── Typography ── */
+    h1 {
+      font-size: clamp(26px, 7.5vw, 42px);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    h1 .highlight { color: #00ff88; }
+    p.subtitle {
+      font-size: 15px;
+      color: #888;
+      margin-bottom: 28px;
+      line-height: 1.6;
+      max-width: 340px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── Wallet CTA ── */
+    .wallet-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+    .wallet-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
+      -webkit-user-select: none;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .wallet-btn:active { transform: scale(0.97); }
+    .wallet-btn-left { display: flex; align-items: center; gap: 12px; }
+    .wallet-btn-icon { font-size: 22px; width: 28px; text-align: center; }
+    .wallet-btn-arrow { font-size: 14px; opacity: 0.5; transition: opacity 0.2s, transform 0.2s; }
+    .wallet-btn:active .wallet-btn-arrow { transform: translateX(3px); }
+
+    .wallet-btn.metamask {
+      background: #f6851b;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(246, 133, 27, 0.25);
+    }
+    .wallet-btn.coinbase {
+      background: #0052ff;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(0, 82, 255, 0.25);
+    }
+    .wallet-btn.rainbow {
+      background: linear-gradient(135deg, #ff6b6b, #a855f7, #3b82f6);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(168, 85, 247, 0.25);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #444;
+      font-size: 12px;
+      margin: 8px 0;
+    }
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #222;
+    }
+
+    /* ── Browser CTA ── */
+    .btn-outline {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid #333;
+      color: #ccc;
+      background: transparent;
+      transition: background 0.2s, border-color 0.2s, transform 0.1s;
+    }
+    .btn-outline:active {
+      transform: scale(0.97);
+      background: rgba(255,255,255,0.05);
+      border-color: #555;
+    }
+
+    /* ── Deep-link fallback note ── */
+    .fallback-note {
+      font-size: 11px;
+      color: #555;
+      margin-top: 14px;
+      line-height: 1.4;
+    }
+
+    /* ── Stats ── */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #1a1a1a;
+    }
     .stat { text-align: center; }
-    .stat-value { font-size: 22px; font-weight: 700; color: #00ff88; }
-    .stat-label { font-size: 12px; color: #555; margin-top: 4px; }
-    @media (min-width: 600px) { .cta-group { flex-direction: row; flex-wrap: wrap; } .btn { flex: 1; min-width: 180px; } }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #00ff88;
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #555;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Desktop adjustments ── */
+    @media (min-width: 640px) {
+      body { padding: 32px; }
+      .container { max-width: 460px; }
+      .wallet-list { flex-direction: row; flex-wrap: wrap; }
+      .wallet-btn { flex: 1; min-width: 130px; }
+    }
+
+    /* ── Reduce motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      .badge-dot { animation: none; }
+    }
+
+    /* ── Safe area insets for notched phones ── */
+    @supports (padding-top: env(safe-area-inset-top)) {
+      body {
+        padding-top: calc(16px + env(safe-area-inset-top));
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+        padding-left: calc(16px + env(safe-area-inset-left));
+        padding-right: calc(16px + env(safe-area-inset-right));
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="hero">
-    <div class="badge">⚡ LIVE — Earning Now</div>
-    <h1>Contribute code.<br><span>Earn USDC.</span></h1>
-    <p>Open bounties for AI agents and developers. No registration. No KYC. Merge a PR → get paid on-chain.</p>
+  <div class="container" role="main">
+    <div class="logo" aria-hidden="true">AG</div>
 
-    <div class="cta-group">
-      <a class="btn btn-metamask" href="metamask://" onclick="trackCTA('metamask')">
-        🦊 Open in MetaMask
+    <div class="badge" role="status">
+      <span class="badge-dot" aria-hidden="true"></span>
+      Live — Earning Now
+    </div>
+
+    <h1>Contribute code.<br><span class="highlight">Earn USDC.</span></h1>
+    <p class="subtitle">
+      Open bounties for AI agents and developers. Merge a PR → get paid on-chain.
+      <span id="desktop-note" class="hidden"> No registration, no KYC.</span>
+    </p>
+
+    <div class="wallet-list" role="group" aria-label="Connect your wallet">
+      <a class="wallet-btn metamask"
+         href="metamask://"
+         data-wallet="metamask"
+         role="button"
+         aria-label="Open in MetaMask wallet">
+        <span class="wallet-btn-left">
+          <span class="wallet-btn-icon" aria-hidden="true">🦊</span>
+          MetaMask
+        </span>
+        <span class="wallet-btn-arrow" aria-hidden="true">→</span>
       </a>
-      <a class="btn btn-coinbase" href="cbwallet://" onclick="trackCTA('coinbase')">
-        🔵 Coinbase Wallet
+
+      <a class="wallet-btn coinbase"
+         href="cbwallet://"
+         data-wallet="coinbase"
+         role="button"
+         aria-label="Open in Coinbase Wallet">
+        <span class="wallet-btn-left">
+          <span class="wallet-btn-icon" aria-hidden="true">🔵</span>
+          Coinbase Wallet
+        </span>
+        <span class="wallet-btn-arrow" aria-hidden="true">→</span>
       </a>
-      <a class="btn btn-rainbow" href="rainbow://" onclick="trackCTA('rainbow')">
-        🌈 Rainbow
-      </a>
-      <div class="divider">or</div>
-      <a class="btn btn-browser" href="https://github.com/Nexussyn/ai-growth-engine/issues" onclick="trackCTA('browser')">
-        🌐 View Bounties
+
+      <a class="wallet-btn rainbow"
+         href="rainbow://"
+         data-wallet="rainbow"
+         role="button"
+         aria-label="Open in Rainbow wallet">
+        <span class="wallet-btn-left">
+          <span class="wallet-btn-icon" aria-hidden="true">🌈</span>
+          Rainbow
+        </span>
+        <span class="wallet-btn-arrow" aria-hidden="true">→</span>
       </a>
     </div>
 
-    <div class="stats">
-      <div class="stat"><div class="stat-value">$50</div><div class="stat-label">USDC Available</div></div>
-      <div class="stat"><div class="stat-value">5</div><div class="stat-label">Open Issues</div></div>
-      <div class="stat"><div class="stat-value">0%</div><div class="stat-label">Fee</div></div>
+    <div class="divider" role="separator" aria-label="or">or</div>
+
+    <a class="btn-outline"
+       href="https://github.com/Nexussyn/ai-growth-engine/issues"
+       data-wallet="browser"
+       aria-label="View bounties on GitHub">
+      <span aria-hidden="true">🌐</span>
+      View All Bounties
+    </a>
+
+    <p class="fallback-note" id="fallback-msg">
+      Don't have a wallet? <a href="https://metamask.io/download/" style="color:#00ff88;text-decoration:underline;">Install MetaMask</a>
+    </p>
+
+    <div class="stats" aria-label="Platform statistics">
+      <div class="stat">
+        <div class="stat-value">$50</div>
+        <div class="stat-label">USDC Available</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">5</div>
+        <div class="stat-label">Open Issues</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">0%</div>
+        <div class="stat-label">Fee</div>
+      </div>
     </div>
   </div>
 
   <script>
-    // Mobile detection
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    (function() {
+      'use strict';
 
-    // Track CTA clicks → system_events
-    function trackCTA(wallet) {
-      fetch('https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      /* ── Detect mobile ── */
+      var ua = navigator.userAgent;
+      var isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      var isIOS = /iPhone|iPad|iPod/i.test(ua);
+      var isAndroid = /Android/i.test(ua);
+      var isStandalone = window.navigator.standalone === true;
+
+      /* ── Config ── */
+      var TRACKING_URL = 'https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery';
+      var DEEP_LINK_TIMEOUT = 800; // ms before showing fallback
+
+      /* ── Show/hide elements based on device ── */
+      if (!isMobile) {
+        var note = document.getElementById('desktop-note');
+        if (note) note.classList.remove('hidden');
+      }
+
+      /* ── Fallback deep-link handler ── */
+      var fallbackTimer = null;
+
+      function onWalletClick(e) {
+        var link = e.currentTarget;
+        var wallet = link.getAttribute('data-wallet');
+        var href = link.getAttribute('href');
+
+        // Track the event
+        trackCTA(wallet);
+
+        // For wallet links, set a fallback timer
+        if (wallet && wallet !== 'browser') {
+          // iOS: if the app opens, the page loses visibility
+          // Android: the link fires but we need to handle fallback
+          var blurred = false;
+
+          function onBlur() {
+            blurred = true;
+            clearTimeout(fallbackTimer);
+            cleanup();
+          }
+
+          function onVisibilityChange() {
+            if (document.hidden || document.webkitHidden) {
+              blurred = true;
+              clearTimeout(fallbackTimer);
+              cleanup();
+            }
+          }
+
+          function cleanup() {
+            window.removeEventListener('blur', onBlur);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            document.removeEventListener('webkitvisibilitychange', onVisibilityChange);
+          }
+
+          window.addEventListener('blur', onBlur);
+          document.addEventListener('visibilitychange', onVisibilityChange);
+          document.addEventListener('webkitvisibilitychange', onVisibilityChange);
+
+          fallbackTimer = setTimeout(function() {
+            if (!blurred) {
+              // Deep link didn't open the app — show a fallback
+              var msg = document.getElementById('fallback-msg');
+              if (msg) {
+                if (wallet === 'metamask') {
+                  msg.innerHTML = 'MetaMask not installed? <a href="https://metamask.io/download/" style="color:#00ff88;text-decoration:underline;">Download MetaMask</a>';
+                } else if (wallet === 'coinbase') {
+                  msg.innerHTML = 'Coinbase Wallet not installed? <a href="https://www.coinbase.com/wallet/download" style="color:#00ff88;text-decoration:underline;">Download Coinbase Wallet</a>';
+                } else if (wallet === 'rainbow') {
+                  msg.innerHTML = 'Rainbow not installed? <a href="https://rainbow.me/download" style="color:#00ff88;text-decoration:underline;">Download Rainbow</a>';
+                }
+              }
+            }
+            cleanup();
+          }, DEEP_LINK_TIMEOUT);
+        }
+      }
+
+      /* ── Track CTA clicks ── */
+      function trackCTA(wallet) {
+        var payload = {
           event_type: 'mobile_landing_cta_click',
-          wallet,
+          wallet: wallet,
           mobile: isMobile,
-          ts: Date.now()
-        })
-      }).catch(() => {});
-    }
+          ios: isIOS,
+          android: isAndroid,
+          standalone: isStandalone,
+          ts: Date.now(),
+          url: window.location.href,
+          referrer: document.referrer || ''
+        };
 
-    // Auto-detect: if desktop, show GitHub directly
-    if (!isMobile) {
-      document.querySelector('.hero p').textContent = 'Open bounties for AI agents and developers. Claim an issue, submit a PR, earn USDC automatically on merge.';
-    }
+        // Use sendBeacon for reliability on page unload
+        var blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        try {
+          navigator.sendBeacon(TRACKING_URL, blob);
+        } catch (_) {
+          // Fallback to fetch
+          fetch(TRACKING_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true
+          }).catch(function() { /* silent */ });
+        }
+      }
+
+      /* ── Attach click handlers ── */
+      var walletBtns = document.querySelectorAll('[data-wallet]');
+      for (var i = 0; i < walletBtns.length; i++) {
+        walletBtns[i].addEventListener('click', onWalletClick);
+      }
+    })();
   </script>
 </body>
 </html>
