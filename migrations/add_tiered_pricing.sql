@@ -1,10 +1,33 @@
 -- Migration: Add tiered pricing support (Issue #1)
 -- Idempotent: safe to run multiple times
 
-ALTER TABLE IF EXISTS x402_calls
-  ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'standard' CHECK (tier IN ('free', 'standard', 'premium', 'priority')),
-  ADD COLUMN IF NOT EXISTS price_per_call NUMERIC(10, 6) DEFAULT 0.01,
+CREATE TABLE IF NOT EXISTS x402_calls (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  caller_id TEXT,
+  call_count INT DEFAULT 0,
+  amount_usdc NUMERIC(10, 6) DEFAULT 0.01,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE x402_calls
+  ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'standard';
+
+ALTER TABLE x402_calls
+  ADD COLUMN IF NOT EXISTS price_per_call NUMERIC(10, 6) DEFAULT 0.01;
+
+ALTER TABLE x402_calls
   ADD COLUMN IF NOT EXISTS priority_flag BOOLEAN DEFAULT FALSE;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'x402_calls_tier_check'
+  ) THEN
+    ALTER TABLE x402_calls
+      ADD CONSTRAINT x402_calls_tier_check
+      CHECK (tier IN ('free', 'standard', 'premium', 'priority'));
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS pricing_tiers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -25,4 +48,5 @@ VALUES
 ON CONFLICT (tier) DO UPDATE SET
   price_per_call = EXCLUDED.price_per_call,
   call_min = EXCLUDED.call_min,
-  call_max = EXCLUDED.call_max;
+  call_max = EXCLUDED.call_max,
+  description = EXCLUDED.description;
