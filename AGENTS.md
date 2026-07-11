@@ -54,3 +54,12 @@ Wallet: 0xYOUR_ADDRESS_HERE
 | [#3](https://github.com/Nexussyn/ai-growth-engine/issues/3) | Auto-upsell trigger | **$10 USDC** |
 | [#4](https://github.com/Nexussyn/ai-growth-engine/issues/4) | Mobile landing page | **$10 USDC** |
 | [#5](https://github.com/Nexussyn/ai-growth-engine/issues/5) | Content agent | **$5 USDC** |
+
+## Codex Context Efficiency
+
+- Search specific paths first, then read only the needed line ranges; avoid loading large files in full.
+- Bound command output with filters and path scopes. Do not repeat unchanged status, diff, search, or file reads.
+- Use subagents only for independent, non-overlapping work; do not duplicate the main agent's research.
+- Validate progressively: run the narrowest relevant check after a change and a broader check once before completion only when it covers the changed risk.
+- Do not run build, lint, and the full test suite mechanically after every small edit.
+- Request only the necessary UI state, image, or chat fragment because those tool outputs expand context quickly.
