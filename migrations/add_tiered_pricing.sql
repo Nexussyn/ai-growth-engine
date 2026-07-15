@@ -26,3 +26,17 @@ ON CONFLICT (tier) DO UPDATE SET
   price_per_call = EXCLUDED.price_per_call,
   call_min = EXCLUDED.call_min,
   call_max = EXCLUDED.call_max;
+
+CREATE OR REPLACE FUNCTION get_tier_price(call_count INT, priority_flag BOOLEAN DEFAULT FALSE)
+RETURNS NUMERIC(10, 6)
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT CASE
+    WHEN priority_flag THEN 0.100000
+    WHEN call_count BETWEEN 1 AND 50 THEN 0.000000
+    WHEN call_count BETWEEN 51 AND 500 THEN 0.010000
+    WHEN call_count >= 501 THEN 0.030000
+    ELSE NULL
+  END;
+$$;
