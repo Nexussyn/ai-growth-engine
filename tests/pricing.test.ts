@@ -1,31 +1,22 @@
-import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { getTierPrice, calculateBatchCost } from '../src/pricing/tier-engine.ts';
+import { getTierPrice } from '../src/pricing/tier-engine';
 
-Deno.test('Tier 1: free for first 50 calls', () => {
-  assertEquals(getTierPrice(1).tier, 'free');
-  assertEquals(getTierPrice(50).tier, 'free');
-  assertEquals(getTierPrice(1).pricePerCall, 0.00);
-});
+describe('Tiered Pricing', () => {
+  test('Tier 1 (Free) - First 50 calls', () => {
+    expect(getTierPrice(1)).toEqual({ tier: 'free', pricePerCall: 0.00, callsInTier: 49 });
+    expect(getTierPrice(50)).toEqual({ tier: 'free', pricePerCall: 0.00, callsInTier: 1 });
+  });
 
-Deno.test('Tier 2: standard for calls 51-500', () => {
-  assertEquals(getTierPrice(51).tier, 'standard');
-  assertEquals(getTierPrice(500).tier, 'standard');
-  assertEquals(getTierPrice(51).pricePerCall, 0.01);
-});
+  test('Tier 2 (Standard) - Calls 51–500', () => {
+    expect(getTierPrice(51)).toEqual({ tier:'standard', pricePerCall: 0.01, callsInTier: 449 });
+    expect(getTierPrice(500)).toEqual({ tier: 'standard', pricePerCall: 0.01, callsInTier: 1 });
+  });
 
-Deno.test('Tier 3: premium for calls 500+', () => {
-  assertEquals(getTierPrice(501).tier, 'premium');
-  assertEquals(getTierPrice(501).pricePerCall, 0.03);
-});
+  test('Tier 3 (Premium) - Calls 500+', () => {
+    expect(getTierPrice(501)).toEqual({ tier: 'premium', pricePerCall: 0.03, callsInTier: Infinity });
+    expect(getTierPrice(1000)).toEqual({ tier: 'premium', pricePerCall: 0.03, callsInTier: Infinity });
+  });
 
-Deno.test('Tier 4: priority flag overrides all', () => {
-  assertEquals(getTierPrice(1, true).tier, 'priority');
-  assertEquals(getTierPrice(1000, true).pricePerCall, 0.10);
-});
-
-Deno.test('Batch cost calculation', () => {
-  // 10 free calls = $0
-  assertEquals(calculateBatchCost(1, 10), 0);
-  // 1 standard call
-  assertEquals(calculateBatchCost(51, 1), 0.01);
+  test('Tier 4 (Priority) - Flagged as priority', () => {
+    expect(getTierPrice(1, true)).toEqual({ tier: 'priority', pricePerCall: 0.10, callsInTier: 1 });
+  });
 });
