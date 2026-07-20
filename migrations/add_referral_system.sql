@@ -1,47 +1,31 @@
--- Migration: Referral system (Issue #2)
--- Idempotent
-
+-- Referral system (issue #2)
 CREATE TABLE IF NOT EXISTS referral_codes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL DEFAULT substring(gen_random_uuid()::text, 1, 8),
-  owner_id TEXT NOT NULL,
-  uses INT DEFAULT 0,
-  credits_awarded INT DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  code            TEXT PRIMARY KEY,
+  owner_id        TEXT NOT NULL,
+  uses            INTEGER NOT NULL DEFAULT 0,
+  credits_awarded INTEGER NOT NULL DEFAULT 0,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS referral_conversions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  referral_code TEXT NOT NULL REFERENCES referral_codes(code),
-  new_user_id TEXT NOT NULL,
-  converted_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(referral_code, new_user_id)
+CREATE TABLE IF NOT EXISTS referral_redemptions (
+  id              BIGSERIAL PRIMARY KEY,
+  code            TEXT NOT NULL REFERENCES referral_codes(code),
+  new_user_id     TEXT NOT NULL,
+  awarded_credits INTEGER NOT NULL DEFAULT 5,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (code, new_user_id),
+  UNIQUE (new_user_id)  -- one referral attribution per user
 );
 
-CREATE OR REPLACE FUNCTION process_referral(p_code TEXT, p_new_user_id TEXT)
-RETURNS JSONB AS $$
-DECLARE
-  v_owner_id TEXT;
-  v_credits INT := 5;
-BEGIN
-  -- Idempotency check
-  IF EXISTS (SELECT 1 FROM referral_conversions WHERE referral_code = p_code AND new_user_id = p_new_user_id) THEN
-    RETURN jsonb_build_object('status', 'already_processed');
-  END IF;
+CREATE TABLE IF NOT EXISTS system_events (
+  id          BIGSERIAL PRIMARY KEY,
+  event_type  TEXT NOT NULL,
+  payload     JSONB NOT NULL DEFAULT '{}',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-  SELECT owner_id INTO v_owner_id FROM referral_codes WHERE code = p_code;
-  IF NOT FOUND THEN RETURN jsonb_build_object('status', 'invalid_code'); END IF;
-
-  -- Log conversion
-  INSERT INTO referral_conversions (referral_code, new_user_id) VALUES (p_code, p_new_user_id);
-
-  -- Award credits
-  UPDATE referral_codes SET uses = uses + 1, credits_awarded = credits_awarded + v_credits WHERE code = p_code;
-
-  -- Log event
-  INSERT INTO system_events (event_type, payload, created_at)
-  VALUES ('referral_conversion', jsonb_build_object('code', p_code, 'new_user', p_new_user_id, 'credits', v_credits), NOW());
-
-  RETURN jsonb_build_object('status', 'ok', 'credits_awarded', v_credits, 'owner_id', v_owner_id);
-END;
-$$ LANGUAGE plpgsql;
+CREATE TABLE IF NOT EXISTS user_credits (
+  user_id     TEXT PRIMARY KEY,
+  free_credits INTEGER NOT NULL DEFAULT 0,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
