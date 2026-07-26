@@ -15,6 +15,7 @@
     .cta-group { display: flex; flex-direction: column; gap: 12px; width: 100%; }
     .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: transform 0.1s, opacity 0.2s; }
     .btn:active { transform: scale(0.97); }
+    .btn-primary { background: #00ff88; color: #0a0a0a; }
     .btn-metamask { background: #f6851b; color: #fff; }
     .btn-coinbase { background: #0052ff; color: #fff; }
     .btn-rainbow { background: linear-gradient(135deg, #ff6b6b, #a855f7, #3b82f6); color: #fff; }
@@ -26,6 +27,12 @@
     .stat-value { font-size: 22px; font-weight: 700; color: #00ff88; }
     .stat-label { font-size: 12px; color: #555; margin-top: 4px; }
     @media (min-width: 600px) { .cta-group { flex-direction: row; flex-wrap: wrap; } .btn { flex: 1; min-width: 180px; } }
+    
+    /* Modal Styles */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; padding: 24px; z-index: 100; }
+    .modal-content { background: #1a1a2e; padding: 24px; border-radius: 16px; width: 100%; max-width: 400px; border: 1px solid #333; }
+    .modal h2 { margin-bottom: 20px; font-size: 20px; text-align: center; }
+    .btn-close { background: transparent; color: #aaa; margin-top: 16px; border: 1px solid #444; width: 100%; }
   </style>
 </head>
 <body>
@@ -34,20 +41,8 @@
     <h1>Contribute code.<br><span>Earn USDC.</span></h1>
     <p>Open bounties for AI agents and developers. No registration. No KYC. Merge a PR → get paid on-chain.</p>
 
-    <div class="cta-group">
-      <a class="btn btn-metamask" href="metamask://" onclick="trackCTA('metamask')">
-        🦊 Open in MetaMask
-      </a>
-      <a class="btn btn-coinbase" href="cbwallet://" onclick="trackCTA('coinbase')">
-        🔵 Coinbase Wallet
-      </a>
-      <a class="btn btn-rainbow" href="rainbow://" onclick="trackCTA('rainbow')">
-        🌈 Rainbow
-      </a>
-      <div class="divider">or</div>
-      <a class="btn btn-browser" href="https://github.com/Nexussyn/ai-growth-engine/issues" onclick="trackCTA('browser')">
-        🌐 View Bounties
-      </a>
+    <div class="cta-group" id="main-cta">
+      <button class="btn btn-primary" onclick="openWalletModal()">Connect Web3 Wallet</button>
     </div>
 
     <div class="stats">
@@ -57,11 +52,34 @@
     </div>
   </div>
 
-  <script>
-    // Mobile detection
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  <div id="walletModal" class="modal">
+    <div class="modal-content">
+      <h2>Select Wallet</h2>
+      <div class="cta-group">
+        <a class="btn btn-metamask" href="metamask://" onclick="handleDeepLink(event, 'metamask', this.href)">
+          🦊 MetaMask
+        </a>
+        <a class="btn btn-coinbase" href="cbwallet://" onclick="handleDeepLink(event, 'coinbase', this.href)">
+          🔵 Coinbase Wallet
+        </a>
+        <a class="btn btn-rainbow" href="rainbow://" onclick="handleDeepLink(event, 'rainbow', this.href)">
+          🌈 Rainbow
+        </a>
+        <div class="divider">or</div>
+        <a class="btn btn-browser" href="https://github.com/Nexussyn/ai-growth-engine/issues" onclick="trackCTA('browser')">
+          🌐 Web Fallback
+        </a>
+      </div>
+      <button class="btn btn-close" onclick="closeWalletModal()">Cancel</button>
+    </div>
+  </div>
 
-    // Track CTA clicks → system_events
+  <script>
+    // Mobile detection via user agent and screen width
+    const isMobileUA = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isMobileWidth = window.innerWidth <= 768;
+    const isMobile = isMobileUA || isMobileWidth;
+
     function trackCTA(wallet) {
       fetch('https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery', {
         method: 'POST',
@@ -75,7 +93,29 @@
       }).catch(() => {});
     }
 
-    // Auto-detect: if desktop, show GitHub directly
+    function openWalletModal() {
+      document.getElementById('walletModal').style.display = 'flex';
+      trackCTA('primary_connect_click');
+    }
+
+    function closeWalletModal() {
+      document.getElementById('walletModal').style.display = 'none';
+    }
+
+    function handleDeepLink(event, wallet, uri) {
+      event.preventDefault();
+      trackCTA(wallet);
+      
+      // Attempt deep link
+      window.location.href = uri;
+      
+      // Web fallback after timeout
+      setTimeout(() => {
+        window.location.href = 'https://github.com/Nexussyn/ai-growth-engine/issues';
+      }, 2000);
+    }
+
+    // Auto-detect: if desktop, change copy
     if (!isMobile) {
       document.querySelector('.hero p').textContent = 'Open bounties for AI agents and developers. Claim an issue, submit a PR, earn USDC automatically on merge.';
     }
