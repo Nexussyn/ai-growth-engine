@@ -46,7 +46,18 @@ async function callLLM(prompt: string): Promise<string> {
     return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   }
 
-  throw new Error('No LLM API key configured. Set GROQ_API_KEY or GEMINI_API_KEY.');
+  // Final fallback: Ollama (runs locally)
+  try {
+    const r = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'llama3.2', prompt, stream: false })
+    });
+    const data = await r.json();
+    if (data.response) return data.response;
+  } catch { /* Ollama not running */ }
+
+  throw new Error('No LLM available. Configure GROQ_API_KEY, GEMINI_API_KEY, or run Ollama locally.');
 }
 
 export async function generateContent(bountyId: string): Promise<ContentOutput> {
