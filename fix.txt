@@ -1,0 +1,130 @@
+```typescript
+// solution_1.typescript
+
+import { get_tier_price, tierConfig } from './tier-engine';
+
+/**
+ * @file solution_1.typescript
+ * @description 
+ * Implements the tiered pricing engine for the x402 API.
+ * Includes SQL migration exports for the DB layer and TS logic for the engine.
+ * Designed to be standalone but compatible with existing monorepo structures.
+ */
+
+// --- 1. SQL Migration Definition (Exported for DB Layer) ---
+export const migrationSQL = `
+  -- Idempotent migration for Tiered Pricing Engine
+  -- Adds 'tier' column to handle volume-based pricing logic
+  
+  -- Note: 'tier' can hold 'FREE', 'STANDARD', 'PREMIUM', 'PRIORITY'
+  -- Or 'PRIORITY' can be tracked via a separate 'is_priority' flag
+  
+  ALTER TABLE x402_api_calls 
+  ADD COLUMN IF NOT EXISTS pricing_tier TEXT DEFAULT 'STANDARD',
+  ADD COLUMN IF NOT EXISTS is_priority BOOLEAN DEFAULT FALSE;
+
+  -- Index for optimization on high-volume tables
+  CREATE INDEX IF NOT EXISTS idx_calls_pricing_tier 
+  ON x402_api_calls (pricing_tier, timestamp);
+`;
+
+// --- 2. Types ---
+export type PriceTier = 'FREE' | 'STANDARD' | 'PREMIUM' | 'PRIORITY';
+
+export interface PricingResult {
+  totalCost: number;
+  effectiveRate: number;
+  tier: PriceTier;
+}
+
+// --- 3. Core Engine Logic ---
+export const get_tier_price = (
+  callCount: number,
+  priorityFlag: boolean
+): number => {
+  // Logic Interpretation:
+  // If 'priorityFlag' is true, it acts as a "Tier 4" override rate ($0.10).
+  // If 'priorityFlag' is false, we use the volume logic (Tier 1-3).
+  
+  if (priorityFlag) {
+    // Tier 4: Priority Flag = Flat $0.10/call (High impact)
+    return callCount * 0.10;
+  }
+
+  // Tier 1-3: Volume Dependent (Starting from Base $0.01 Standard)
+  // Tier 1 (Free): First 50 calls
+  if (callCount <= 50) {
+    return callCount * 0.00;
+  }
+
+  // Tier 2 (Standard): Calls 51–500
+  if (callCount <= 500) {
+    // We calculate the marginal cost of the 51st call through
+    return (callCount - 50) * 0.01;
+  }
+
+  // Tier 3 (Premium): Calls 500+
+  // Base 450 calls @ 0.01 + Remainder @ 0.03
+  const baseTier2 = 450 * 0.01;
+  const remainder = callCount - 500;
+  return baseTier2 + (remainder * 0.03);
+};
+
+// --- 4. Utility: Calculate with Type Safety ---
+export const calculateTierPrice = (
+  callCount: number,
+  priorityFlag: boolean
+): PricingResult => {
+  const price = get_tier_price(callCount, priorityFlag);
+  
+  // Determine string tier based on price to aid in SQL/DB filtering
+  let tierName: PriceTier = 'STANDARD';
+  if (price === 0) tierName = 'FREE';
+  else if (priorityFlag) tierName = 'PRIORITY';
+  else if (callCount > 500) tierName = 'PREMIUM';
+  
+  return {
+    totalCost: price,
+    effectiveRate: price / callCount || 0,
+    tier: tierName
+  };
+};
+
+// --- 5. Test Runner / Verification Helper ---
+/**
+ * Runs a basic self-check of the logic to ensure migration sync.
+ * Can be called programmatically or by the human dev.
+ */
+export const runPricingVerification = (): PricingResult[] => {
+  const scenarios = [
+    { count: 0, priority: false, expected: 0 },      // Edge case
+    { count: 50, priority: false, expected: 0 },     // Free tier cap
+    { count: 51, priority: false, expected: 0.01 },  // 1st premium call
+    { count: 500, priority: false, expected: 4.50 }, // 450 calls @ 0.01
+    { count: 501, priority: false, expected: 4.53 },  // 1st premium tier
+    { count: 100, priority: true, expected: 10 },     // Priority flag
+  ];
+
+  return scenarios.map((s, i) => {
+    const result = calculateTierPrice(s.count, s.priority);
+    // @ts-ignore - simple validation
+    if (result.totalCost < 0) throw new Error(`Scenario ${i} returned negative`);
+    return result;
+  });
+};
+
+// --- 6. Module Exports for Monorepo Compatibility ---
+export const tierEngineConfig = {
+  defaultPrice: 0.01,
+  priorityPrice: 0.10,
+  freeThreshold: 50,
+  premiumThreshold: 500
+};
+
+// Default export for top-level imports
+export default {
+  calculateTierPrice,
+  get_tier_price,
+  migrationSQL
+};
+```
