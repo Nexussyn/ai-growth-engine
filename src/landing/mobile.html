@@ -2,82 +2,188 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Growth Engine — Earn USDC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>x402 AI Growth Engine — Mobile Connect</title>
   <style>
+    :root {
+      --bg: #090d16;
+      --card: #111827;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.35);
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --border: #1f2937;
+      --success: #10b981;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .hero { text-align: center; max-width: 480px; width: 100%; }
-    .badge { display: inline-block; background: #1a1a2e; border: 1px solid #00ff88; color: #00ff88; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; letter-spacing: 1px; }
-    h1 { font-size: clamp(28px, 8vw, 48px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
-    h1 span { color: #00ff88; }
-    p { font-size: 16px; color: #aaa; margin-bottom: 32px; line-height: 1.6; }
-    .cta-group { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-    .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: transform 0.1s, opacity 0.2s; }
-    .btn:active { transform: scale(0.97); }
-    .btn-metamask { background: #f6851b; color: #fff; }
-    .btn-coinbase { background: #0052ff; color: #fff; }
-    .btn-rainbow { background: linear-gradient(135deg, #ff6b6b, #a855f7, #3b82f6); color: #fff; }
-    .btn-browser { background: #1a1a1a; color: #fff; border: 1px solid #333; }
-    .divider { display: flex; align-items: center; gap: 12px; color: #444; font-size: 13px; margin: 4px 0; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #222; }
-    .stats { display: flex; justify-content: center; gap: 32px; margin-top: 40px; padding-top: 32px; border-top: 1px solid #1a1a1a; }
-    .stat { text-align: center; }
-    .stat-value { font-size: 22px; font-weight: 700; color: #00ff88; }
-    .stat-label { font-size: 12px; color: #555; margin-top: 4px; }
-    @media (min-width: 600px) { .cta-group { flex-direction: row; flex-wrap: wrap; } .btn { flex: 1; min-width: 180px; } }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px 20px;
+    }
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      align-self: center;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 32px;
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+    p {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+    .wallet-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+    .wallet-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      color: #fff;
+      background: var(--card);
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .wallet-btn.primary {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border: none;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    .wallet-btn:active {
+      transform: scale(0.98);
+    }
+    .meta-status {
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+    }
+    footer {
+      text-align: center;
+      font-size: 11px;
+      color: #6b7280;
+      padding-top: 20px;
+    }
   </style>
 </head>
 <body>
-  <div class="hero">
-    <div class="badge">⚡ LIVE — Earning Now</div>
-    <h1>Contribute code.<br><span>Earn USDC.</span></h1>
-    <p>Open bounties for AI agents and developers. No registration. No KYC. Merge a PR → get paid on-chain.</p>
+  <header>
+    <div class="meta-status">
+      <span class="status-dot"></span>
+      <span>Base Chain Mainnet Active</span>
+    </div>
+  </header>
 
-    <div class="cta-group">
-      <a class="btn btn-metamask" href="metamask://" onclick="trackCTA('metamask')">
-        🦊 Open in MetaMask
-      </a>
-      <a class="btn btn-coinbase" href="cbwallet://" onclick="trackCTA('coinbase')">
+  <main class="hero">
+    <div class="badge">x402 Protocol Mobile</div>
+    <h1>Earn USDC for Autonomous Agent Contributions</h1>
+    <p>Connect your web3 mobile wallet to claim bounties, execute agent tasks, and receive instant on-chain payouts.</p>
+
+    <div class="wallet-options">
+      <button class="wallet-btn primary" onclick="connectWallet('metamask')">
+        🦊 Connect with MetaMask
+      </button>
+      <button class="wallet-btn" onclick="connectWallet('coinbase')">
         🔵 Coinbase Wallet
-      </a>
-      <a class="btn btn-rainbow" href="rainbow://" onclick="trackCTA('rainbow')">
-        🌈 Rainbow
-      </a>
-      <div class="divider">or</div>
-      <a class="btn btn-browser" href="https://github.com/Nexussyn/ai-growth-engine/issues" onclick="trackCTA('browser')">
-        🌐 View Bounties
-      </a>
+      </button>
+      <button class="wallet-btn" onclick="connectWallet('rainbow')">
+        🌈 Rainbow Wallet
+      </button>
     </div>
+  </main>
 
-    <div class="stats">
-      <div class="stat"><div class="stat-value">$50</div><div class="stat-label">USDC Available</div></div>
-      <div class="stat"><div class="stat-value">5</div><div class="stat-label">Open Issues</div></div>
-      <div class="stat"><div class="stat-value">0%</div><div class="stat-label">Fee</div></div>
-    </div>
-  </div>
+  <footer>
+    x402 Agent Growth Engine &copy; 2026 &middot; Ultra-low Latency Pay-per-call
+  </footer>
 
   <script>
-    // Mobile detection
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-    // Track CTA clicks → system_events
-    function trackCTA(wallet) {
-      fetch('https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_type: 'mobile_landing_cta_click',
-          wallet,
-          mobile: isMobile,
-          ts: Date.now()
-        })
-      }).catch(() => {});
+    function getHostDappUrl() {
+      return encodeURIComponent(window.location.href);
     }
 
-    // Auto-detect: if desktop, show GitHub directly
-    if (!isMobile) {
-      document.querySelector('.hero p').textContent = 'Open bounties for AI agents and developers. Claim an issue, submit a PR, earn USDC automatically on merge.';
+    function isMobile() {
+      return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+    }
+
+    function trackEvent(eventType, payload) {
+      console.log(`[Event Logged]: ${eventType}`, payload);
+      if (window.parent) {
+        window.parent.postMessage({ type: 'TRACK_EVENT', eventType, payload }, '*');
+      }
+    }
+
+    function connectWallet(provider) {
+      trackEvent('mobile_landing_cta_click', {
+        provider,
+        userAgent: navigator.userAgent,
+        isMobile: isMobile(),
+        timestamp: new Date().toISOString()
+      });
+
+      const dappUrl = getHostDappUrl();
+      let deepLink = '';
+
+      if (provider === 'metamask') {
+        deepLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+      } else if (provider === 'coinbase') {
+        deepLink = `https://go.cb-w.com/dapp?cb_url=${dappUrl}`;
+      } else if (provider === 'rainbow') {
+        deepLink = `https://rnbwapp.com/wc?uri=${dappUrl}`;
+      }
+
+      if (isMobile()) {
+        window.location.href = deepLink;
+      } else {
+        alert(`Connecting via ${provider}... Open this URL on your mobile wallet browser for instant deep-linking.`);
+      }
     }
   </script>
 </body>
