@@ -1,26 +1,13 @@
--- Migration: Upsell triggers (Issue #3)
--- Idempotent
-
+﻿-- Migration: Add Upsell Triggers
 CREATE TABLE IF NOT EXISTS upsell_triggers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
-  trigger_type TEXT NOT NULL DEFAULT 'free_limit_50pct',
-  shown_at TIMESTAMPTZ DEFAULT NOW(),
-  converted BOOLEAN DEFAULT FALSE,
-  UNIQUE(user_id, trigger_type)
+  trigger_type TEXT NOT NULL,
+  variant TEXT NOT NULL,
+  prompt_message TEXT NOT NULL,
+  shown_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  converted BOOLEAN NOT NULL DEFAULT FALSE,
+  converted_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE OR REPLACE FUNCTION check_upsell_trigger(p_user_id TEXT, p_call_count INT)
-RETURNS JSONB AS $$
-BEGIN
-  -- Fire at 5th call (50% of 10 free calls)
-  IF p_call_count = 5 THEN
-    INSERT INTO upsell_triggers (user_id, trigger_type)
-    VALUES (p_user_id, 'free_limit_50pct')
-    ON CONFLICT (user_id, trigger_type) DO NOTHING;
-
-    RETURN jsonb_build_object('upsell', true, 'prompt', 'You have used 50% of your free calls. Upgrade for unlimited access.');
-  END IF;
-  RETURN jsonb_build_object('upsell', false);
-END;
-$$ LANGUAGE plpgsql;
+CREATE INDEX IF NOT EXISTS idx_upsell_triggers_user ON upsell_triggers(user_id, trigger_type);
