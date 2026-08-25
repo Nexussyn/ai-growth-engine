@@ -1,6 +1,4 @@
--- Migration: Add tiered pricing support (Issue #1)
--- Idempotent: safe to run multiple times
-
+﻿-- Migration: Add tiered pricing support (Issue #1)
 ALTER TABLE IF EXISTS x402_calls
   ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'standard' CHECK (tier IN ('free', 'standard', 'premium', 'priority')),
   ADD COLUMN IF NOT EXISTS price_per_call NUMERIC(10, 6) DEFAULT 0.01,
