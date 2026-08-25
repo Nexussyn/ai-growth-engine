@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AI Growth Engine">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00ff88"/>
+      <stop offset="100%" stop-color="#00c2ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#0a0a0a"/>
+  <path d="M18 40 L32 14 L46 40 Z" fill="none" stroke="url(#g)" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="32" cy="36" r="4" fill="#00ff88"/>
+  <path d="M22 46 H42" stroke="#1a1a2e" stroke-width="3" stroke-linecap="round"/>
+  <path d="M24 50 H40" stroke="#00ff88" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+</svg>
