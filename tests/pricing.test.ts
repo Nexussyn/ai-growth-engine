@@ -9,11 +9,13 @@ Deno.test('Tier 1: free for first 50 calls', () => {
 
 Deno.test('Tier 2: standard for calls 51-500', () => {
   assertEquals(getTierPrice(51).tier, 'standard');
-  assertEquals(getTierPrice(500).tier, 'standard');
+  assertEquals(getTierPrice(499).tier, 'standard');
   assertEquals(getTierPrice(51).pricePerCall, 0.01);
 });
 
 Deno.test('Tier 3: premium for calls 500+', () => {
+  assertEquals(getTierPrice(500).tier, 'premium');
+  assertEquals(getTierPrice(500).pricePerCall, 0.03);
   assertEquals(getTierPrice(501).tier, 'premium');
   assertEquals(getTierPrice(501).pricePerCall, 0.03);
 });
