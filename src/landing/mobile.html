@@ -25,6 +25,8 @@
     .stat { text-align: center; }
     .stat-value { font-size: 22px; font-weight: 700; color: #00ff88; }
     .stat-label { font-size: 12px; color: #555; margin-top: 4px; }
+    .payout-info { margin-top: 32px; padding: 16px; background: #111; border: 1px solid #222; border-radius: 12px; font-size: 13px; color: #888; }
+    .payout-info code { background: #1a1a1a; padding: 2px 6px; border-radius: 4px; color: #00ff88; font-family: monospace; font-size: 12px; }
     @media (min-width: 600px) { .cta-group { flex-direction: row; flex-wrap: wrap; } .btn { flex: 1; min-width: 180px; } }
   </style>
 </head>
@@ -55,11 +57,16 @@
       <div class="stat"><div class="stat-value">5</div><div class="stat-label">Open Issues</div></div>
       <div class="stat"><div class="stat-value">0%</div><div class="stat-label">Fee</div></div>
     </div>
+
+    <div class="payout-info">
+      <strong>Payout Wallet (Binance EVM):</strong><br>
+      <code>0x5ea575c120018f5f2e266d781e43f335aaaf3be6</code>
+    </div>
   </div>
 
   <script>
-    // Mobile detection
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // Mobile detection (user-agent + screen size)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
 
     // Track CTA clicks → system_events
     function trackCTA(wallet) {
@@ -70,6 +77,7 @@
           event_type: 'mobile_landing_cta_click',
           wallet,
           mobile: isMobile,
+          payout_address: '0x5ea575c120018f5f2e266d781e43f335aaaf3be6',
           ts: Date.now()
         })
       }).catch(() => {});
