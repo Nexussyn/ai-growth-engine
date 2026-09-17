@@ -1,0 +1,10 @@
+{
+  "name": "ai-growth-engine-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:upsell": "node --test tests/upsell.test.ts tests/upsell-sql.test.mjs"
+  },
+  "engines": { "node": ">=24" },
+  "devDependencies": { "@electric-sql/pglite": "^0.3.14" }
+}
