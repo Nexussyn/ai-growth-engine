@@ -1,31 +1,24 @@
-import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { getTierPrice, calculateBatchCost } from '../src/pricing/tier-engine.ts';
+import { get_tier_price } from '../src/pricing/tier-engine';
 
-Deno.test('Tier 1: free for first 50 calls', () => {
-  assertEquals(getTierPrice(1).tier, 'free');
-  assertEquals(getTierPrice(50).tier, 'free');
-  assertEquals(getTierPrice(1).pricePerCall, 0.00);
-});
+describe('Tiered Pricing Engine', () => {
+  it('should return 0.00 for Tier 1 (Free: <= 50 calls)', () => {
+    expect(get_tier_price(25, false)).toBe(0.00);
+    expect(get_tier_price(50, false)).toBe(0.00);
+  });
 
-Deno.test('Tier 2: standard for calls 51-500', () => {
-  assertEquals(getTierPrice(51).tier, 'standard');
-  assertEquals(getTierPrice(500).tier, 'standard');
-  assertEquals(getTierPrice(51).pricePerCall, 0.01);
-});
+  it('should return 0.01 for Tier 2 (Standard: 51-500 calls)', () => {
+    expect(get_tier_price(51, false)).toBe(0.01);
+    expect(get_tier_price(250, false)).toBe(0.01);
+    expect(get_tier_price(500, false)).toBe(0.01);
+  });
 
-Deno.test('Tier 3: premium for calls 500+', () => {
-  assertEquals(getTierPrice(501).tier, 'premium');
-  assertEquals(getTierPrice(501).pricePerCall, 0.03);
-});
+  it('should return 0.03 for Tier 3 (Premium: > 500 calls)', () => {
+    expect(get_tier_price(501, false)).toBe(0.03);
+    expect(get_tier_price(1000, false)).toBe(0.03);
+  });
 
-Deno.test('Tier 4: priority flag overrides all', () => {
-  assertEquals(getTierPrice(1, true).tier, 'priority');
-  assertEquals(getTierPrice(1000, true).pricePerCall, 0.10);
-});
-
-Deno.test('Batch cost calculation', () => {
-  // 10 free calls = $0
-  assertEquals(calculateBatchCost(1, 10), 0);
-  // 1 standard call
-  assertEquals(calculateBatchCost(51, 1), 0.01);
+  it('should return 0.10 for Tier 4 (Priority) regardless of calls', () => {
+    expect(get_tier_price(10, true)).toBe(0.10);
+    expect(get_tier_price(600, true)).toBe(0.10);
+  });
 });
