@@ -4,14 +4,18 @@
  * Uses Groq Llama (free tier: 6000 req/min) or Gemini Flash (free 1500/day).
  */
 
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? '';
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
+export function createContentAgent(db: SupabaseClient, callLLM: (prompt: string) => Promise<string>) {
+  return (bountyId: string) => generateWith(db, callLLM, bountyId);
+}
 
-const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+function runtimeAgent() {
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !key) throw new Error('Supabase configuration missing');
+  return createContentAgent(createClient(url, key, { auth: { persistSession: false } }), callLLM);
+}
 
 export interface ContentOutput {
   tweet: string;        // 280 chars max
@@ -20,6 +24,8 @@ export interface ContentOutput {
 }
 
 async function callLLM(prompt: string): Promise<string> {
+  const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? '';
+  const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
   // Try Groq first (faster, higher free limit)
   if (GROQ_API_KEY) {
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -50,6 +56,11 @@ async function callLLM(prompt: string): Promise<string> {
 }
 
 export async function generateContent(bountyId: string): Promise<ContentOutput> {
+  return (await runtimeAgent())(bountyId);
+}
+export const generate_content = generateContent;
+
+async function generateWith(db: SupabaseClient, callLLM: (prompt: string) => Promise<string>, bountyId: string): Promise<ContentOutput> {
   // Fetch bounty details
   const { data: bounty } = await db
     .from('bounty_executions')
@@ -77,19 +88,22 @@ export async function generateContent(bountyId: string): Promise<ContentOutput> 
     `Write a 300-word blog post about this completed open-source AI bounty. Include: what was built, why it matters, how others can participate. Professional but accessible tone. Context: ${ctx}`
   );
 
-  // Store in outreach_sent
-  await db.from('outreach_sent').insert({
+  const bound = (text: string) => Array.from(text.trim()).slice(0, 280).join('');
+  const output = { tweet: bound(tweet), thread: thread.map(bound), blog_post };
+  // Persist exactly what the caller receives.
+  const { error: writeError } = await db.from('outreach_sent').insert({
     bounty_id: bountyId,
     channel: 'content_agent',
-    content: JSON.stringify({ tweet, thread, blog_post }),
+    content: JSON.stringify(output),
     sent_at: new Date().toISOString()
   });
 
-  return { tweet: tweet.slice(0, 280), thread, blog_post };
+  if (writeError) throw new Error('Failed to persist generated content');
+  return output;
 }
 
 // Edge Function entry point
-Deno.serve(async (req: Request) => {
+if (import.meta.main) Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
   try {
     const { bounty_id } = await req.json();
