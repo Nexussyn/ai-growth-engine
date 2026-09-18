@@ -327,6 +327,9 @@ def create_plan():
                     "codebook_sha256": codebook_sha,
                     "token_order": labels,
                     "replicate": rep,
+                    "pre_target_seed_sha256": (
+                        sha256_bytes(target_seed) if target_seed is not None else None
+                    ),
                 }
                 salt = secrets.token_hex(32)
                 commitment = sha256_bytes(
@@ -346,6 +349,7 @@ def create_plan():
                     "agent": agent_name,
                     "endpoint": endpoint,
                     "target_seed_prelock_sha256": sha256_bytes(target_seed) if target_seed else None,
+                    "commitment_payload_sha256": sha256_obj(commitment_payload),
                     "prompt": None,
                 })
     return plan, reveal
@@ -464,7 +468,19 @@ def main():
         "K_levels": plan["K_levels"],
         "episodes_per_K": plan["episodes_per_K"],
         "replicates": plan["replicates"],
-        "trial_commitments": [x["commitment"] for x in plan["trials"]],
+        "trial_commitments": [
+            {
+                "trial_id": x["trial_id"],
+                "episode_id": x["episode_id"],
+                "replicate": x["replicate"],
+                "arm": x["arm"],
+                "K": x["K"],
+                "codebook_sha256": x["codebook_sha256"],
+                "commitment_payload_sha256": x["commitment_payload_sha256"],
+                "commitment": x["commitment"],
+            }
+            for x in plan["trials"]
+        ],
         "discovery": plan["discovery"],
     }
     public_pre = dict(public_pre_core)
