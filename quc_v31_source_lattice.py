@@ -49,18 +49,26 @@ def normalize_hex_256(value: str) -> bytes:
         raise ValueError("source value is not hexadecimal") from exc
 
 
+def context_shift(label: str, episode_id: str) -> bytes:
+    return hashlib.sha256(
+        f"{PROTOCOL}|{label}|{episode_id}".encode()
+    ).digest()
+
+
 def extract_index(parts: dict[str, str], episode_id: str, k: int, label: str) -> int:
     """
-    Derive an exactly-uniform index from the XOR of 256-bit source prefixes,
-    assuming at least one participating source is conditionally uniform and
-    independent of the other inputs.
+    Exact information-theoretic construction under the one-honest-source model.
+
+    XOR is a bijection, so if at least one participating source is conditionally
+    uniform and independent, the resulting 256-bit X is conditionally uniform.
+    Rejection sampling is then applied directly to X. A second cryptographic hash
+    must NOT be inserted before reduction when making an exact-uniformity claim.
     """
     x = 0
     for key in sorted(parts):
         x ^= int.from_bytes(normalize_hex_256(parts[key]), "big")
-    source_xor = x.to_bytes(32, "big")
-    context = f"{PROTOCOL}|{label}|{episode_id}|{k}".encode()
-    return unbiased_index(source_xor + hashlib.sha256(context).digest(), k)
+    x ^= int.from_bytes(context_shift(label, episode_id), "big")
+    return unbiased_index(x.to_bytes(32, "big"), k)
 
 
 def derive_lattice(nist_hex: str, drand_hex: str, aqn_hex: str,
