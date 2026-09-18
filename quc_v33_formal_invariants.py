@@ -13,28 +13,16 @@ import hashlib
 from collections import Counter
 
 
-def reject8(x: int, k: int) -> int:
-    limit = 256 - (256 % k)
-    if not 2 <= k <= 256:
-        raise ValueError
-    # For the toy exhaustive test, search successive 8-bit hash-like values.
-    # We use identity stepping to verify the rejection logic itself.
-    y = x
-    while y >= limit:
-        y = (37 * y + 17) % 256
-    return y % k
-
-
 def test_exact_uniform_rejection():
     for k in range(2, 17):
-        c = Counter(reject8(x, k) for x in range(256))
-        expected = 256 // k
+        limit = 256 - (256 % k)
+        counts = Counter(
+            x % k for x in range(limit)
+        )
+        expected = limit // k
+        assert sum(counts.values()) == limit
         for j in range(k):
-            # Exact uniformity is not expected when 256 is not divisible by k;
-            # the reduced accepted domain after rejection must be checked by
-            # enumerating accepted x-values instead.
-            accepted = sum(1 for x in range(256) if x < 256 - 256 % k and x % k == j)
-            assert accepted == expected
+            assert counts[j] == expected
 
 
 def test_xor_bijection():
