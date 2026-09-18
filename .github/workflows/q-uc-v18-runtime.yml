@@ -1,0 +1,60 @@
+name: Q-UC v18 Runtime Diagnostic
+
+on:
+  push:
+    branches: [q-uc-v18-runtime-diagnostic]
+
+permissions:
+  contents: read
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Runtime
+        run: |
+          set -eux
+          date -u
+          python3 --version
+          python3 - <<'PY'
+          import urllib.request
+          for url in [
+              "https://example.com",
+              "https://llm-orchestration-agent-openai.getvda.ai/.well-known/agent-card.json"
+          ]:
+              print("FETCH", url)
+              with urllib.request.urlopen(url, timeout=20) as r:
+                  body=r.read(1024)
+                  print("HTTP", r.status, "BYTES", len(body))
+          PY
+
+      - name: A2A request
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, time, uuid
+          url="https://llm-orchestration-agent-openai.getvda.ai/a2a/"
+          payload={
+            "jsonrpc":"2.0",
+            "id":1,
+            "method":"message/send",
+            "params":{
+              "message":{
+                "messageId":"q-uc-v18-"+str(uuid.uuid4()),
+                "role":"user",
+                "parts":[{"text":"Reply with exactly one character: A"}]
+              }
+            }
+          }
+          data=json.dumps(payload).encode()
+          req=urllib.request.Request(url,data=data,method="POST",headers={"Content-Type":"application/json","User-Agent":"Q-UC-v18/1.0"})
+          try:
+            with urllib.request.urlopen(req,timeout=45) as r:
+              body=r.read()
+              print("A2A_HTTP",r.status)
+              print(body.decode("utf-8","replace"))
+          except urllib.error.HTTPError as e:
+            print("A2A_HTTP",e.code)
+            print(e.read().decode("utf-8","replace"))
+            raise
+          PY
