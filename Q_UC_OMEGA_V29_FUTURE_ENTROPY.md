@@ -8,18 +8,33 @@ Test a narrowly defined hypothesis:
 
 No consciousness, retrocausality, or ontology is assumed.
 
-## Core innovation
+## Prior-art correction
 
-The target is not instantiated before predictor lock.
+Generating the target only after the prediction is **not itself a new experimental idea**. This is already part of the operational definition of many precognition paradigms. The protocol therefore does not claim novelty for delayed target generation alone.
+
+The potentially distinctive research contribution is the joint combination of:
+- future public randomness assembled from multiple independent sources;
+- semantic masking of the experimental hypothesis from the predictor;
+- target-permutation nulls conditional on the predictor's empirical response marginals;
+- randomized observer/back-action interventions;
+- cross-representation invariance tests;
+- and infrastructure-separated replication.
+
+This combination is a research hypothesis, not a claim of global novelty.
+
+## Future-entropy construction
+
+The target is instantiated only after predictor lock.
 
 A future public randomness vector R_f is selected by a precommitted rule but is unavailable before B0.
 
 After B0:
-  T = Extractor(secret_seed, R1_f, R2_f, ..., domain_separator)
 
-The primary predictor artifact is sealed before the future randomness becomes available.
+    T = Extractor(secret_seed, R1_f, R2_f, ..., domain_separator)
 
-The target therefore did not exist as a concrete scored value at predictor lock.
+The predictor artifact is sealed before the future randomness becomes available.
+
+The purpose is not to prove retrocausality. It is to construct a stronger information-exclusion condition.
 
 ## Source separation
 
@@ -252,16 +267,22 @@ Discovery may explore:
 
 None of these may become confirmatory endpoints without a new precommitment.
 
-## Novelty statement
+## Prior-art search result
 
-A literature search performed for this protocol found prior precognition experiments with humans and at least one 2025 exploratory LLM study, but no evidence in the searched sources of this exact combination of:
-- semantically masked external-agent prediction,
-- target instantiation after predictor lock,
-- multiple independently verifiable future-randomness sources,
-- conditional target-permutation null preserving response marginals,
-- and explicit cross-representation / infrastructure invariance.
+A literature search performed for this protocol found:
+- established human precognition paradigms in which targets are generated after responses are secured;
+- a 2025 exploratory study reporting above-chance forced-choice performance from an LLM, while explicitly noting conventional alternatives such as RNG predictability and calling for replication;
+- a much larger 2025 metascientific replication program (26,483 participants; 420,472 trials) that did not obtain a consistent replicable above-chance effect.
 
-This is a prior-art observation, not a claim of global novelty.
+The search did not identify, among the sources inspected, a published experiment combining all of the following in one preregistered causal framework:
+- semantically masked external-agent prediction;
+- future public randomness assembled from multiple independent sources;
+- target-permutation nulls preserving response marginals;
+- observer/back-action interventions;
+- cross-representation invariance;
+- infrastructure-separated replication.
+
+That is evidence about the searched literature, not proof that no prior implementation exists.
 
 ## Final interpretation constraint
 
