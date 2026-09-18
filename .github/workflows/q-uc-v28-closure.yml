@@ -1,0 +1,45 @@
+name: Q-UC Omega v28 Observer Closure
+
+on:
+  push:
+    branches: [q-uc-omega-v28-observer-closure-20260918]
+
+permissions:
+  contents: read
+
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run observer-closure pilot
+        run: python3 q_uc_omega_v28_closure.py
+
+      - name: Validate artifacts
+        run: |
+          python3 - <<'PY'
+          import hashlib, json
+          pub=json.load(open("q_uc_v28_public.json"))
+          rev=json.load(open("q_uc_v28_reveal.json"))
+          assert pub["protocol"] == "Q-UC-OMEGA-V28"
+          assert rev["protocol"] == "Q-UC-OMEGA-V28"
+          seen={x["trial_id"] for x in rev["results"]}
+          assert len(seen)==len(rev["results"])
+          for x in rev["results"]:
+              raw=f'{pub["protocol"]}|{x["trial_id"]}|target'
+              assert x["commitment"]
+          print("ARTIFACT_SCHEMA_VALID")
+          PY
+
+      - name: Upload immutable research artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: q-uc-v28-run-${{ github.run_id }}
+          path: |
+            q_uc_v28_public.json
+            q_uc_v28_reveal.json
+          retention-days: 30
