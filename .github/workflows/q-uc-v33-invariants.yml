@@ -1,0 +1,18 @@
+name: q-uc-v33-invariants
+
+on:
+  pull_request:
+  push:
+    branches:
+      - q-uc-omega-v33-di-randomness-20260918
+
+jobs:
+  invariants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python syntax
+        run: python -m py_compile quc_v33_formal_invariants.py quc_v31_source_lattice.py quc_v31_crossfit.py quc_v31_eprocess.py quc_v32_external_boyle_audit.py
+      - name: Finite-domain invariants
+        run: python quc_v33_formal_invariants.py
