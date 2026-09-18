@@ -4,6 +4,7 @@ import hashlib, json, math, os, re, secrets, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 
 PROTOCOL = "Q-UC-OMEGA-V28"
 N_SYMBOLS = 64
@@ -31,8 +32,9 @@ def get_json(url: str):
         return r.status, raw, json.loads(raw.decode("utf-8"))
 
 def discover_agent(url: str):
-    base = url.rstrip("/")
-    card_url = base.rsplit("/",1)[0] + "/.well-known/agent-card.json"
+    u = urlsplit(url)
+    origin = f"{u.scheme}://{u.netloc}"
+    card_url = origin + "/.well-known/agent-card.json"
     try:
         status, raw, card = get_json(card_url)
         return {
@@ -70,6 +72,7 @@ def post_a2a(endpoint: str, prompt: str):
         "params":{
             "message":{
                 "messageId": "quc-" + secrets.token_hex(12),
+                "contextId": trial_id,
                 "role":"user",
                 "parts":[{"text":prompt}],
             }
@@ -152,7 +155,7 @@ def main():
     plan=[]
     for agent_name, endpoint in AGENTS.items():
         for i in range(N_TRIALS):
-            condition = "ACTIVE" if ((i + int(sha256_bytes(agent_name.encode())[:4],16)) % 2 == 0) else "SHAM"
+            condition = "ACTIVE" if secrets.randbelow(2) == 0 else "SHAM"
             plan.append((agent_name, endpoint, condition, f"{PROTOCOL}-{agent_name}-{i}-{secrets.token_hex(8)}"))
     secrets.SystemRandom().shuffle(plan)
 
@@ -204,6 +207,8 @@ def main():
                 "decoy":r["decoy_for_reveal"],
                 "salt":r["salt"],
                 "commitment":r["commitment"],
+                "response_sequence":r["response_sequence_for_audit"],
+                "response_sha256":r["response_sha256"],
             } for r in results],
         },f,sort_keys=True,indent=2)
 
