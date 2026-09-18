@@ -1,0 +1,44 @@
+name: Q-UC v17 External Agent Probe
+
+on:
+  push:
+    branches: [q-uc-extreme-lab-20260918]
+
+permissions:
+  contents: read
+
+jobs:
+  q-uc-v17:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run blinded probe
+        run: |
+          python3 q_uc_external_probe_v17.py
+
+      - name: Validate reveal commitment
+        run: |
+          python3 - <<'PY'
+          import hashlib, json
+          d=json.load(open("q_uc_v17_reveal.json"))
+          c=hashlib.sha256(
+              ("Q-UC-v17|"+d["trial_id"]+"|"+d["salt"]+"|"+d["target"]).encode()
+          ).hexdigest()
+          assert c == d["commitment"], (c,d["commitment"])
+          assert len(d["target"]) == 512
+          assert set(d["target"]) <= set("ABCD")
+          print("REVEAL_COMMITMENT_VALID", c)
+          PY
+
+      - name: Upload immutable research artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: q-uc-v17-run-\${{ github.run_id }}
+          path: |
+            q_uc_v17_public.json
+            q_uc_v17_reveal.json
+          retention-days: 14
