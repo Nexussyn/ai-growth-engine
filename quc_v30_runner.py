@@ -37,6 +37,7 @@ MAX_WORKERS = int(os.getenv("QUC30_WORKERS", "8"))
 POLL_SECONDS = float(os.getenv("QUC30_POLL_SECONDS", "2"))
 POLL_MAX_SECONDS = int(os.getenv("QUC30_POLL_MAX_SECONDS", "900"))
 MIN_FUTURE_LEAD_SECONDS = int(os.getenv("QUC30_MIN_FUTURE_LEAD_SECONDS", "120"))
+MIN_DRAND_FUTURE_GAP = int(os.getenv("QUC30_MIN_DRAND_FUTURE_GAP", "10"))
 PRE_B0_PATH = os.getenv("QUC30_PRE_B0_PATH", "quc_v30_pre_b0.json")
 
 AGENTS = {
@@ -250,6 +251,18 @@ def wait_and_fetch_future(nist_ms: int, drand_round: int):
     raise RuntimeError(f"future sources unavailable before timeout: {last_error}")
 
 
+def probe_drand_latest():
+    status, raw, obj = fetch_json(f"{DRAND_URL}/latest")
+    round_id = int(obj["round"])
+    return {
+        "url": f"{DRAND_URL}/latest",
+        "http_status": status,
+        "raw_sha256": sha256_bytes(raw),
+        "round": round_id,
+        "retrieved_at": now_iso(),
+    }
+
+
 def build_prompt(trial_id: str, labels: list[str], commitment: str) -> str:
     options = " ".join(labels)
     return (
@@ -282,6 +295,13 @@ def validate_future_schedule():
 def create_plan():
     validate_future_schedule()
 
+    drand_anchor = probe_drand_latest()
+    if DRAND_ROUND <= drand_anchor["round"] + MIN_DRAND_FUTURE_GAP:
+        raise RuntimeError(
+            f"drand round {DRAND_ROUND} is not sufficiently ahead of pre-B0 round "
+            f"{drand_anchor['round']}"
+        )
+
     agents = list(AGENTS.items())
     plan = {
         "protocol": PROTOCOL,
@@ -294,6 +314,7 @@ def create_plan():
             "drand_round": DRAND_ROUND,
             "nist_base": NIST_BASE,
             "drand_url": DRAND_URL,
+            "drand_pre_b0_anchor": drand_anchor,
         },
         "trials": [],
     }
