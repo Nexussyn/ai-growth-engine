@@ -287,7 +287,29 @@ External Boyle 2025 LLM benchmark:
 
 This external dataset is a benchmark, not a Q-UC experiment.
 
-## 18. Scientific status
+## 18. Prior-art correction
+
+A public 2026 draft implementation, PsiMeter, already specifies:
+- future drand quicknet target rounds;
+- per-session cryptographic precommitments;
+- append-only hash-chained ledgers;
+- independent live witnesses;
+- public verification;
+- anytime-valid e-value scoring.
+
+Therefore none of these components is claimed as novel by Q-UC Ω.
+
+The distinctive research question must remain the empirical conjunction of:
+- source-switching across independently characterized source classes;
+- adversarial disclosure of all but one entropy source;
+- representation-invariant latent-index prediction;
+- held-out conditional information testing;
+- causal observer intervention;
+- and independent I4/I5 replication.
+
+This conjunction is still a hypothesis, not a global novelty claim.
+
+## 19. Scientific status
 
 V33 creates a stronger falsifiable bridge between:
 - public quantum randomness,
