@@ -298,3 +298,97 @@ The ambition is to construct an experiment for which:
 
 A positive result must be allowed to die in at least ten independent ways before
 being promoted to a discovery candidate.
+
+
+## 18. One-honest-source conditional-uniformity lemma
+
+Let U be one 256-bit source value that is conditionally uniform and independent of
+the pre-B0 sigma-algebra A and of all other source values V. Define
+
+    X = U XOR f(V, A)
+
+Then, conditional on A and V, X is uniform on {0,1}^256.
+
+If the target index is produced from X by exact rejection sampling into K states,
+then
+
+    P(T=j | A,V) = 1/K
+
+for every j.
+
+Therefore, under the ordinary causal model and the one-honest-source assumption,
+no pre-B0 response strategy can have conditional hit probability above 1/K merely
+because it knows A, provider state, timing, prompts, or the other sources.
+
+This is a standard cryptographic consequence of XOR with an independent uniform
+source, not a new theorem.
+
+Its scientific value here is that the null becomes explicit and auditable rather
+than being an informal appeal to "randomness."
+
+## 19. Sequential e-process
+
+For independent source blocks, the future-target hit stream can be monitored
+without a fixed stopping time.
+
+For trial i let
+
+    p0_i = 1 / K_i
+
+and H_i = 1 when the decoded response equals the target.
+
+For a finite predeclared family of alternatives p_{i,m} > p0_i, define
+
+    e_i = sum_m w_m
+          (p_{i,m}/p0_i)^{H_i}
+          ((1-p_{i,m})/(1-p0_i))^{1-H_i}
+
+with fixed weights w_m that sum to 1.
+
+Under H0, E[e_i | F_{i-1}] <= 1.
+
+The product
+
+    E_n = product_{i=1}^n e_i
+
+is therefore an e-process under the corresponding conditional null.
+
+Ville's inequality gives an anytime-valid threshold:
+
+    P_H0(sup_n E_n >= 1/alpha) <= alpha.
+
+This permits continuous monitoring without the classical optional-stopping penalty,
+provided the trial-level conditional independence assumptions actually hold.
+
+The e-process must not be used when multiple trials share one source block in a way
+that violates the conditional null. In that situation, use block-level e-values.
+
+## 20. Why this matters
+
+A conventional experiment may accumulate data, inspect the result, extend the sample,
+change the endpoint and unintentionally manufacture significance.
+
+An e-process separates:
+- evidence accumulation;
+- stopping;
+- interpretation.
+
+A predeclared threshold can be crossed at any time while preserving the stated type-I
+error guarantee under the model assumptions.
+
+This is especially useful for a long-running Q-UC campaign.
+
+## 21. Scientific consequence
+
+The strongest future result would therefore have two independent layers:
+
+A. a structural result:
+   representation-invariant and source-invariant residual information;
+
+B. a sequential evidential result:
+   the same signal crosses a predeclared anytime-valid e-value threshold.
+
+The two layers should be reported separately.
+
+An e-value crossing is evidence against the null. It is not evidence for consciousness
+or retrocausality by itself.
