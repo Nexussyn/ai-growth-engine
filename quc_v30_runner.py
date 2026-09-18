@@ -36,6 +36,8 @@ TIMEOUT = int(os.getenv("QUC30_TIMEOUT", "20"))
 MAX_WORKERS = int(os.getenv("QUC30_WORKERS", "8"))
 POLL_SECONDS = float(os.getenv("QUC30_POLL_SECONDS", "2"))
 POLL_MAX_SECONDS = int(os.getenv("QUC30_POLL_MAX_SECONDS", "900"))
+MIN_FUTURE_LEAD_SECONDS = int(os.getenv("QUC30_MIN_FUTURE_LEAD_SECONDS", "120"))
+PRE_B0_PATH = os.getenv("QUC30_PRE_B0_PATH", "quc_v30_pre_b0.json")
 
 AGENTS = {
     "vda_openai": "https://llm-orchestration-agent-openai.getvda.ai/a2a/",
@@ -263,8 +265,12 @@ def validate_future_schedule():
     if NIST_PULSE_MS <= 0 or DRAND_ROUND <= 0:
         raise RuntimeError("FUTURE arm requires QUC30_NIST_PULSE_MS and QUC30_DRAND_ROUND")
     now_ms = int(time.time() * 1000)
-    if NIST_PULSE_MS <= now_ms:
-        raise RuntimeError("NIST future pulse is not in the future; refusing to run")
+    lead_ms = NIST_PULSE_MS - now_ms
+    if lead_ms < MIN_FUTURE_LEAD_SECONDS * 1000:
+        raise RuntimeError(
+            f"NIST future pulse must be at least {MIN_FUTURE_LEAD_SECONDS}s ahead; "
+            f"only {lead_ms/1000:.1f}s remain"
+        )
     # drand round ordering is checked against a current round only after B0.
     return {
         "nist_pulse_ms": NIST_PULSE_MS,
@@ -447,8 +453,11 @@ def main():
     # Discover agents before the predictor phase.
     plan["discovery"] = {name: discover(url) for name, url in AGENTS.items()}
 
-    # Freeze public pre-B0 artifact before any predictor call.
-    public_pre = {
+    # Freeze and durably write the pre-B0 manifest before any predictor call.
+    # This is still not an external timestamp proof; an I4 campaign must
+    # additionally publish the hash to an independently controlled timestamp
+    # or immutable public log before B0.
+    public_pre_core = {
         "protocol": PROTOCOL,
         "created_at": plan["created_at"],
         "future_source_schedule": plan["future_source_schedule"],
@@ -458,7 +467,15 @@ def main():
         "trial_commitments": [x["commitment"] for x in plan["trials"]],
         "discovery": plan["discovery"],
     }
-    public_pre["manifest_sha256"] = sha256_obj(public_pre)
+    public_pre = dict(public_pre_core)
+    public_pre["manifest_sha256"] = sha256_obj(public_pre_core)
+    public_pre["written_before_B0_at"] = now_iso()
+    public_pre["write_pid"] = os.getpid()
+
+    with open(PRE_B0_PATH, "x", encoding="utf-8") as f:
+        json.dump(public_pre, f, sort_keys=True, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
 
     plan["public_pre_manifest_sha256"] = public_pre["manifest_sha256"]
 
