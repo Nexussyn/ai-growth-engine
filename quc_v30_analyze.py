@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import collections
+import hashlib
 import json
 import math
 import random
@@ -75,7 +76,8 @@ def conditional_permutation(rows, arm, k, permutations=DEFAULT_PERMUTATIONS, see
     # Critical: the target is shuffled at the independent episode level, not at
     # token/replicate level. This preserves the repeated-representation design.
     target_values = [e[0]["target_index"] for e in eps]
-    rng = random.Random(seed + k + hash(arm) % 1000003)
+    stable = int.from_bytes(hashlib.sha256(f"{arm}|{k}".encode()).digest()[:8], "big")
+    rng = random.Random(seed + k + stable)
     exceed = 0
     total = 0
 
@@ -107,6 +109,35 @@ def conditional_permutation(rows, arm, k, permutations=DEFAULT_PERMUTATIONS, see
         "p_upper": (1 + exceed) / (1 + total),
     }
 
+
+
+def verify_commitments(rows):
+    checked = []
+    failures = []
+    for r in rows:
+        payload = {
+            "protocol": "Q-UC-OMEGA-V30",
+            "trial_id": r["trial_id"],
+            "episode_id": r["episode_id"],
+            "arm": r["arm"],
+            "k": int(r["K"]),
+            "codebook_sha256": r.get("codebook_sha256") or hashlib.sha256(
+                json.dumps(r.get("labels", []), sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest(),
+            "token_order": r.get("labels", []),
+            "replicate": int(r["replicate"]),
+        }
+        expected = hashlib.sha256(
+            json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+            + b"|" + r["salt"].encode()
+        ).hexdigest()
+        ok = expected == r.get("commitment")
+        q = dict(r)
+        q["commitment_verified"] = ok
+        checked.append(q)
+        if not ok:
+            failures.append(r["trial_id"])
+    return checked, failures
 
 def summarize(rows):
     out = []
@@ -163,8 +194,11 @@ def main():
     path = sys.argv[1] if len(sys.argv) > 1 else "quc_v30_reveal.json"
     data = load(path)
     rows = data["trials"]
+    rows, commitment_failures = verify_commitments(rows)
+    rows = [r for r in rows if r["commitment_verified"]]
     result = {
         "protocol": data.get("protocol"),
+        "commitment_failures": commitment_failures,
         "source_value_sha256": {
             "nist": data.get("source_values", {}).get("nist", {}).get("raw_sha256") if data.get("source_values") else None,
             "drand": data.get("source_values", {}).get("drand", {}).get("raw_sha256") if data.get("source_values") else None,
