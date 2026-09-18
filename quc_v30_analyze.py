@@ -126,6 +126,7 @@ def verify_commitments(rows):
             ).hexdigest(),
             "token_order": r.get("labels", []),
             "replicate": int(r["replicate"]),
+            "pre_target_seed_sha256": r.get("pre_target_seed_sha256"),
         }
         expected = hashlib.sha256(
             json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
