@@ -18,7 +18,7 @@ jobs:
       - name: Run observer-closure pilot
         run: python3 q_uc_omega_v28_closure.py
 
-      - name: Validate artifacts
+      - name: Verify commitments and artifacts
         run: |
           python3 - <<'PY'
           import hashlib, json
@@ -26,12 +26,21 @@ jobs:
           rev=json.load(open("q_uc_v28_reveal.json"))
           assert pub["protocol"] == "Q-UC-OMEGA-V28"
           assert rev["protocol"] == "Q-UC-OMEGA-V28"
-          seen={x["trial_id"] for x in rev["results"]}
-          assert len(seen)==len(rev["results"])
+          pub_ids={x["trial_id"] for x in pub["results"]}
+          rev_ids={x["trial_id"] for x in rev["results"]}
+          assert pub_ids == rev_ids
           for x in rev["results"]:
-              raw=f'{pub["protocol"]}|{x["trial_id"]}|target'
-              assert x["commitment"]
-          print("ARTIFACT_SCHEMA_VALID")
+              secret = x["target"] if x["condition"] == "ACTIVE" else x["decoy"]
+              raw = f'{pub["protocol"]}|{x["trial_id"]}|target|{x["salt"]}|{secret}'.encode()
+              got = hashlib.sha256(raw).hexdigest()
+              assert got == x["commitment"], (x["trial_id"], got, x["commitment"])
+              assert len(x["target"]) == 64 and set(x["target"]) <= set("ABCD")
+              assert len(x["decoy"]) == 64 and set(x["decoy"]) <= set("ABCD")
+              assert x["target"] != x["decoy"]
+              seq=x["response_sequence"]
+              if seq is not None:
+                  assert len(seq) == 64 and set(seq) <= set("ABCD")
+          print("ARTIFACT_COMMITMENTS_VALID")
           PY
 
       - name: Upload immutable research artifacts
