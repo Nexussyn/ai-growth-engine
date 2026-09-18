@@ -1,0 +1,22 @@
+{
+  "protocol": "Q-UC-OMEGA-V25-NIST-1500Z",
+  "target_source": "NIST Randomness Beacon v2.0",
+  "target_time": "2026-09-18T15:00:00.000Z",
+  "target_width_bits": 512,
+  "encoding": "two-bit symbols A/B/C/D",
+  "commitment": "976fd2191eb21c5fb00a6626935ce661616bc6177bcdd917b628ac7d0c3cb8a1",
+  "commitment_definition": "SHA256(protocol|target_time|prediction)",
+  "predictor_state": "sealed locally; prediction not published",
+  "verification_url": "https://beacon.nist.gov/beacon/2.0/pulse/time/1789743600000",
+  "null_model": "uniform 512-bit target; no predictor access",
+  "primary_test": "exact binomial / likelihood ratio after decoding prediction against beacon output",
+  "secondary_tests": [
+    "bit balance",
+    "run structure",
+    "lag autocorrelation",
+    "conditional mutual information under public covariates",
+    "permutation/randomization",
+    "direction-reversal"
+  ],
+  "ontology_rule": "No consciousness claim may be made from a statistical anomaly alone."
+}

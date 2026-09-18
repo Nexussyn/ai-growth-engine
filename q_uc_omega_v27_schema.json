@@ -1,0 +1,36 @@
+{
+  "protocol": "Q-UC-OMEGA-V27-CAUSAL-DIAMOND",
+  "fields": {
+    "event_id": "cryptographic random identifier",
+    "replica_id": "independent system identifier",
+    "provider_id": "provider/operator identifier",
+    "condition": "forward|reverse|sham|placebo",
+    "causal_parents": "array of event IDs",
+    "utc_ns": "wall-clock timestamp",
+    "monotonic_ns": "local monotonic timestamp",
+    "beacon_index": "external beacon pulse index when applicable",
+    "payload_hash": "SHA-256",
+    "tx_bytes": "network bytes sent",
+    "rx_bytes": "network bytes received",
+    "session_reset": "boolean",
+    "target_commitment": "public commitment hash",
+    "reveal_hash": "hash of revealed target",
+    "response_hash": "hash of predictor output"
+  },
+  "invariants": [
+    "Target reveal must verify against the target commitment.",
+    "Prediction artifact must have a timestamp before target reveal.",
+    "Analyst labels stay blind until the analysis manifest is frozen.",
+    "No trial may be removed after scoring except under preregistered technical invalidation rules.",
+    "A provider pair with a shared gateway does not count as fully independent replication."
+  ],
+  "primary_metrics": [
+    "bitwise agreement",
+    "mutual information",
+    "conditional mutual information",
+    "exact randomization p-value",
+    "likelihood ratio or Bayes factor",
+    "effect size",
+    "back-action dose-response"
+  ]
+}

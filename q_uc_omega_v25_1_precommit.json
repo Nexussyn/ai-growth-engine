@@ -1,0 +1,15 @@
+{
+  "protocol": "Q-UC-OMEGA-V25.1-NIST-1500Z",
+  "status": "VALID PRECOMMIT",
+  "target_source": "NIST Randomness Beacon 2.0",
+  "target_time": "2026-09-18T15:00:00.000Z",
+  "target_width_bits": 512,
+  "encoding": "raw 512-bit prediction",
+  "commitment": "6488923d7d51546ad347adb0d2d964af6968068183afda3152d0f712215e2767",
+  "commitment_definition": "SHA256(protocol|target_time|salt_hex|prediction_hex)",
+  "prediction_state": "sealed outside repository before target release",
+  "private_record": "q_uc_v25_1_private_secret.json in sealed experiment workspace; not published",
+  "null_model": "prediction independent of beacon output",
+  "primary_test": "bitwise agreement against the exact NIST pulse released at the target time",
+  "note": "The earlier v25 commitment 976fd219... was a protocol dry-run and MUST NOT be used as scientific evidence."
+}
