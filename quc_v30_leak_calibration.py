@@ -11,7 +11,7 @@ from urllib.error import HTTPError, URLError
 
 from quc_v30_runner import AGENTS, K_LEVELS, PROTOCOL, TIMEOUT, make_codebook
 
-def post(endpoint, prompt, context):
+def post(endpoint, prompt, context, labels, target_index):
     body = {
         "jsonrpc":"2.0", "id":1, "method":"message/send",
         "params":{"message":{
@@ -34,9 +34,8 @@ def post(endpoint, prompt, context):
         return {"status":None,"error":f"{type(e).__name__}:{e}",
                 "valid":False,"hit":False}
     text=raw.decode("utf-8","replace").strip()
-    labels=post.labels
     valid=text in labels
-    hit=valid and text==labels[post.target_index]
+    hit=valid and text==labels[target_index]
     return {"status":status,"error":None,"valid":valid,"hit":hit,
             "response_sha256":hashlib.sha256(raw).hexdigest()}
 
@@ -53,9 +52,7 @@ def one(agent_name, endpoint, k):
         f"The known correct candidate is {labels[target_index]}. "
         f"Return exactly that candidate and nothing else."
     )
-    post.labels=labels
-    post.target_index=target_index
-    result=post(endpoint,prompt,trial_id)
+    result=post(endpoint,prompt,trial_id,labels,target_index)
     return {"agent":agent_name,"K":k,"trial_id":trial_id,
             **result}
 
