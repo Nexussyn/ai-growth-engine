@@ -143,7 +143,9 @@ def permuted_crossfit(rows, arm, k, n_perm=20000, seed=20260918):
     # Preserve target values exactly at the block level.
     for _ in range(n_perm):
         pseudo_rows = [dict(r) for r in rows]
-        by_eid = {r["episode_id"]: r for r in pseudo_rows}
+        by_eid = collections.defaultdict(list)
+        for r in pseudo_rows:
+            by_eid[r["episode_id"]].append(r)
 
         for block in block_keys:
             eps = by_block[block]
@@ -151,8 +153,8 @@ def permuted_crossfit(rows, arm, k, n_perm=20000, seed=20260918):
             shuffled = target_labels[:]
             rng.shuffle(shuffled)
             for (_eid, ep), target in zip(eps, shuffled):
-                for r in ep:
-                    by_eid[r["episode_id"]]["target_index"] = target
+                for r in by_eid[_eid]:
+                    r["target_index"] = target
 
         score = crossfit(pseudo_rows, arm, k)["advantage_nats_per_response"]
         if score is None:
