@@ -428,6 +428,7 @@ def run_predictor_phase(plan, reveal):
             "response_index": response_index,
             "commitment": tr["commitment"],
             "salt": tr["salt"],
+            "pre_target_seed_sha256": tr["target_seed_prelock_sha256"],
             "prompt_sha256": tr["prompt_sha256"],
             "response_sha256": tr["response"]["response_sha256"],
             "valid_response": response_index is not None,
