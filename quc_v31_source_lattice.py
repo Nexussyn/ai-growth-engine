@@ -29,18 +29,38 @@ def unbiased_index(seed: bytes, k: int) -> int:
         counter += 1
 
 
+def normalize_hex_256(value: str) -> bytes:
+    """
+    Normalize an external source value to exactly 256 bits.
+
+    For the one-honest-source argument, no compression hash is applied here:
+    the first 256 source bits are XORed directly. If any one source is
+    conditionally uniform and independent, XOR with arbitrary other values
+    remains uniform.
+    """
+    v = "".join(str(value).split()).lower()
+    if v.startswith("0x"):
+        v = v[2:]
+    if len(v) < 64:
+        raise ValueError("source value must contain at least 256 bits")
+    try:
+        return bytes.fromhex(v[:64])
+    except ValueError as exc:
+        raise ValueError("source value is not hexadecimal") from exc
+
+
 def extract_index(parts: dict[str, str], episode_id: str, k: int, label: str) -> int:
     """
-    Deterministically derives a target state from selected external source values.
-
-    No source value is generated here. This function is pure and auditable.
+    Derive an exactly-uniform index from the XOR of 256-bit source prefixes,
+    assuming at least one participating source is conditionally uniform and
+    independent of the other inputs.
     """
-    encoded = [parts[key] for key in sorted(parts)]
-    material = (
-        f"{PROTOCOL}|{label}|{episode_id}|{k}|"
-        + "|".join(encoded)
-    ).encode()
-    return unbiased_index(hashlib.sha256(material).digest(), k)
+    x = 0
+    for key in sorted(parts):
+        x ^= int.from_bytes(normalize_hex_256(parts[key]), "big")
+    source_xor = x.to_bytes(32, "big")
+    context = f"{PROTOCOL}|{label}|{episode_id}|{k}".encode()
+    return unbiased_index(source_xor + hashlib.sha256(context).digest(), k)
 
 
 def derive_lattice(nist_hex: str, drand_hex: str, aqn_hex: str,
