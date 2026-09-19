@@ -26,3 +26,21 @@ ON CONFLICT (tier) DO UPDATE SET
   price_per_call = EXCLUDED.price_per_call,
   call_min = EXCLUDED.call_min,
   call_max = EXCLUDED.call_max;
+
+CREATE OR REPLACE FUNCTION get_tier_price(call_count BIGINT, priority_flag BOOLEAN DEFAULT FALSE)
+RETURNS NUMERIC AS $$
+BEGIN
+  IF call_count IS NULL OR call_count < 1 OR call_count > 9007199254740991 THEN
+    RAISE EXCEPTION 'call_count must be a positive safe integer' USING ERRCODE = '22023';
+  END IF;
+  IF priority_flag IS NULL THEN
+    RAISE EXCEPTION 'priority_flag must not be null' USING ERRCODE = '22023';
+  END IF;
+  RETURN CASE
+    WHEN priority_flag THEN 0.10
+    WHEN call_count <= 50 THEN 0.00
+    WHEN call_count <= 500 THEN 0.01
+    ELSE 0.03
+  END;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
