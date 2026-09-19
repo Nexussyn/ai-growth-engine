@@ -1,5 +1,5 @@
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { getTierPrice, calculateBatchCost } from '../src/pricing/tier-engine.ts';
+import { getTierPrice, calculateBatchCost, get_tier_price } from '../src/pricing/tier-engine.ts';
 
 Deno.test('Tier 1: free for first 50 calls', () => {
   assertEquals(getTierPrice(1).tier, 'free');
@@ -29,3 +29,12 @@ Deno.test('Batch cost calculation', () => {
   // 1 standard call
   assertEquals(calculateBatchCost(51, 1), 0.01);
 });
+
+Deno.test('Alias get_tier_price testing', () => {
+  assertEquals(get_tier_price(1).tier, 'free');
+  assertEquals(get_tier_price(51).tier, 'standard');
+  assertEquals(get_tier_price(501).tier, 'premium');
+  assertEquals(get_tier_price(1, true).tier, 'priority');
+  assertEquals(get_tier_price(1).pricePerCall, 0.00);
+});
+
