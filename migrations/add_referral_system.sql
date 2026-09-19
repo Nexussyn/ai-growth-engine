@@ -45,3 +45,27 @@ BEGIN
   RETURN jsonb_build_object('status', 'ok', 'credits_awarded', v_credits, 'owner_id', v_owner_id);
 END;
 $$ LANGUAGE plpgsql;
+
+-- Ensure audit + notification tables exist (Issue #2 acceptance)
+CREATE TABLE IF NOT EXISTS system_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type TEXT NOT NULL,
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_credits (
+  user_id TEXT PRIMARY KEY,
+  balance INT NOT NULL DEFAULT 0 CHECK (balance >= 0),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
