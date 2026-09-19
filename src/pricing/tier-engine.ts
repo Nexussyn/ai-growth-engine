@@ -41,3 +41,4 @@ export function calculateBatchCost(startCount: number, numCalls: number, priorit
   }
   return Math.round(total * 1e6) / 1e6; // round to 6 decimals (USDC precision)
 }
+export function get_tier_price(call_count: number, priority_flag = false) { return getTierPrice(call_count, priority_flag); }
