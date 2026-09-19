@@ -19,7 +19,9 @@ BEGIN
     VALUES (p_user_id, 'free_limit_50pct')
     ON CONFLICT (user_id, trigger_type) DO NOTHING;
 
-    RETURN jsonb_build_object('upsell', true, 'prompt', 'You have used 50% of your free calls. Upgrade for unlimited access.');
+    IF FOUND THEN
+      RETURN jsonb_build_object('upsell', true, 'prompt', 'You have used 50% of your free calls. Upgrade for unlimited access.');
+    END IF;
   END IF;
   RETURN jsonb_build_object('upsell', false);
 END;
