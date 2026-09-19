@@ -19,6 +19,9 @@ export interface TierResult {
  * - Tier 4 (Priority): priority=true → $0.10
  */
 export function getTierPrice(callCount: number, priorityFlag = false): TierResult {
+  if (!Number.isSafeInteger(callCount) || callCount < 1) {
+    throw new RangeError('callCount must be a positive safe integer');
+  }
   if (priorityFlag) {
     return { tier: 'priority', pricePerCall: 0.10, callsInTier: 1 };
   }
@@ -31,10 +34,20 @@ export function getTierPrice(callCount: number, priorityFlag = false): TierResul
   return { tier: 'premium', pricePerCall: 0.03, callsInTier: Infinity };
 }
 
+/** Returns the numeric USDC price for the requested one-based call ordinal. */
+export function get_tier_price(call_count: number, priority_flag = false): number {
+  return getTierPrice(call_count, priority_flag).pricePerCall;
+}
+
 /**
  * Calculates total cost for a batch of calls.
  */
 export function calculateBatchCost(startCount: number, numCalls: number, priority = false): number {
+  getTierPrice(startCount, priority);
+  if (!Number.isSafeInteger(numCalls) || numCalls < 0 ||
+    !Number.isSafeInteger(startCount + Math.max(0, numCalls - 1))) {
+    throw new RangeError('numCalls must be non-negative and the ending call ordinal must be a safe integer');
+  }
   let total = 0;
   for (let i = 0; i < numCalls; i++) {
     total += getTierPrice(startCount + i, priority).pricePerCall;
