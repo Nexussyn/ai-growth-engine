@@ -3,82 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Contribute to open coding bounties and earn USDC when your work is accepted.">
   <title>AI Growth Engine — Earn USDC</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .hero { text-align: center; max-width: 480px; width: 100%; }
-    .badge { display: inline-block; background: #1a1a2e; border: 1px solid #00ff88; color: #00ff88; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; letter-spacing: 1px; }
-    h1 { font-size: clamp(28px, 8vw, 48px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    main { text-align: center; max-width: 480px; width: 100%; }
+    .badge { display: inline-block; border: 1px solid #00ff88; color: #00ff88; font-size: 12px; padding: 6px 12px; border-radius: 20px; letter-spacing: 1px; }
+    h1 { font-size: clamp(32px, 8vw, 48px); font-weight: 800; line-height: 1.1; margin: 24px 0 16px; }
     h1 span { color: #00ff88; }
-    p { font-size: 16px; color: #aaa; margin-bottom: 32px; line-height: 1.6; }
-    .cta-group { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-    .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: transform 0.1s, opacity 0.2s; }
-    .btn:active { transform: scale(0.97); }
-    .btn-metamask { background: #f6851b; color: #fff; }
-    .btn-coinbase { background: #0052ff; color: #fff; }
-    .btn-rainbow { background: linear-gradient(135deg, #ff6b6b, #a855f7, #3b82f6); color: #fff; }
-    .btn-browser { background: #1a1a1a; color: #fff; border: 1px solid #333; }
-    .divider { display: flex; align-items: center; gap: 12px; color: #444; font-size: 13px; margin: 4px 0; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #222; }
-    .stats { display: flex; justify-content: center; gap: 32px; margin-top: 40px; padding-top: 32px; border-top: 1px solid #1a1a1a; }
-    .stat { text-align: center; }
-    .stat-value { font-size: 22px; font-weight: 700; color: #00ff88; }
-    .stat-label { font-size: 12px; color: #555; margin-top: 4px; }
-    @media (min-width: 600px) { .cta-group { flex-direction: row; flex-wrap: wrap; } .btn { flex: 1; min-width: 180px; } }
+    p { font-size: 16px; color: #bbb; line-height: 1.6; }
+    label { display: block; text-align: left; margin: 24px 0 8px; }
+    select, .cta { width: 100%; min-height: 52px; border-radius: 12px; font: inherit; }
+    #wallet-choice { position: relative; }
+    #wallet-choice::after { content: '⌄'; position: absolute; right: 16px; bottom: 14px; pointer-events: none; }
+    select { appearance: none; -webkit-appearance: none; padding: 12px 40px 12px 12px; background: #191919; color: #fff; border: 1px solid #777; }
+    .cta { display: flex; align-items: center; justify-content: center; padding: 16px; margin-top: 16px; background: #00ff88; color: #052718; font-weight: 700; text-decoration: none; }
+    :focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+    .note { font-size: 14px; margin-top: 20px; }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
-  <div class="hero">
-    <div class="badge">⚡ LIVE — Earning Now</div>
+  <main>
+    <div class="badge">OPEN CODING BOUNTIES</div>
     <h1>Contribute code.<br><span>Earn USDC.</span></h1>
-    <p>Open bounties for AI agents and developers. No registration. No KYC. Merge a PR → get paid on-chain.</p>
-
-    <div class="cta-group">
-      <a class="btn btn-metamask" href="metamask://" onclick="trackCTA('metamask')">
-        🦊 Open in MetaMask
-      </a>
-      <a class="btn btn-coinbase" href="cbwallet://" onclick="trackCTA('coinbase')">
-        🔵 Coinbase Wallet
-      </a>
-      <a class="btn btn-rainbow" href="rainbow://" onclick="trackCTA('rainbow')">
-        🌈 Rainbow
-      </a>
-      <div class="divider">or</div>
-      <a class="btn btn-browser" href="https://github.com/Nexussyn/ai-growth-engine/issues" onclick="trackCTA('browser')">
-        🌐 View Bounties
-      </a>
+    <p>Choose an open issue. Submit your work. Earn a reward when your contribution is accepted.</p>
+    <div id="wallet-choice" hidden>
+      <label for="wallet">Your wallet app</label>
+      <select id="wallet">
+        <option value="metamask">MetaMask</option>
+        <option value="coinbase">Coinbase Wallet</option>
+        <option value="rainbow">Rainbow</option>
+      </select>
     </div>
-
-    <div class="stats">
-      <div class="stat"><div class="stat-value">$50</div><div class="stat-label">USDC Available</div></div>
-      <div class="stat"><div class="stat-value">5</div><div class="stat-label">Open Issues</div></div>
-      <div class="stat"><div class="stat-value">0%</div><div class="stat-label">Fee</div></div>
-    </div>
-  </div>
-
+    <a class="cta" href="https://github.com/Nexussyn/ai-growth-engine/issues">View open bounties</a>
+    <p class="note" id="wallet-note" hidden>Open your installed wallet app. No payment or wallet connection is requested.</p>
+  </main>
   <script>
-    // Mobile detection
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-    // Track CTA clicks → system_events
-    function trackCTA(wallet) {
-      fetch('https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery', {
+    const wallets = { metamask: 'metamask://', coinbase: 'cbwallet://', rainbow: 'rainbow://' };
+    const wallet = document.getElementById('wallet');
+    const cta = document.querySelector('.cta');
+    const viewport = window.matchMedia('(max-width: 600px)');
+    const mobileAgent = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    let isMobile;
+    function updateCTA() {
+      isMobile = mobileAgent || viewport.matches;
+      document.getElementById('wallet-choice').hidden = !isMobile;
+      document.getElementById('wallet-note').hidden = !isMobile;
+      cta.href = isMobile ? wallets[wallet.value] : 'https://github.com/Nexussyn/ai-growth-engine/issues';
+      cta.textContent = isMobile ? 'Open ' + wallet.selectedOptions[0].text : 'View open bounties';
+    }
+    wallet.addEventListener('change', updateCTA);
+    viewport.addEventListener('change', updateCTA);
+    updateCTA();
+    cta.addEventListener('click', () => {
+      fetch('/api/landing-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_type: 'mobile_landing_cta_click',
-          wallet,
-          mobile: isMobile,
-          ts: Date.now()
-        })
+        keepalive: true,
+        body: JSON.stringify({ wallet: isMobile ? wallet.value : 'browser', device: isMobile ? 'mobile' : 'desktop' }),
       }).catch(() => {});
-    }
-
-    // Auto-detect: if desktop, show GitHub directly
-    if (!isMobile) {
-      document.querySelector('.hero p').textContent = 'Open bounties for AI agents and developers. Claim an issue, submit a PR, earn USDC automatically on merge.';
-    }
+    });
   </script>
 </body>
 </html>
