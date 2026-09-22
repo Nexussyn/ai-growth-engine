@@ -1,43 +1,28 @@
 /**
- * Tiered Pricing Engine — Issue #1
- * Implements 4-tier pricing for x402 API calls
+ * Calculates the price per API call based on the tiered pricing model.
+ * 
+ * Tiers:
+ * - Tier 1 (Free): 0-50 calls -> $0.00
+ * - Tier 2 (Standard): 51-500 calls -> $0.01
+ * - Tier 3 (Premium): 500+ calls -> $0.03
+ * - Tier 4 (Priority): Priority flagged -> $0.10
+ * 
+ * @param call_count The number of API calls made in the current period.
+ * @param priority_flag Whether the call is flagged as priority.
+ * @returns The price per call.
  */
-
-export type Tier = 'free' | 'standard' | 'premium' | 'priority';
-
-export interface TierResult {
-  tier: Tier;
-  pricePerCall: number; // in USDC
-  callsInTier: number;
-}
-
-/**
- * Returns the price per call based on total call count and priority flag.
- * - Tier 1 (Free):     calls 1–50     → $0.00
- * - Tier 2 (Standard): calls 51–500  → $0.01
- * - Tier 3 (Premium):  calls 500+    → $0.03
- * - Tier 4 (Priority): priority=true → $0.10
- */
-export function getTierPrice(callCount: number, priorityFlag = false): TierResult {
-  if (priorityFlag) {
-    return { tier: 'priority', pricePerCall: 0.10, callsInTier: 1 };
+export function get_tier_price(call_count: number, priority_flag: boolean): number {
+  if (priority_flag) {
+    return 0.10;
   }
-  if (callCount <= 50) {
-    return { tier: 'free', pricePerCall: 0.00, callsInTier: 50 - callCount + 1 };
-  }
-  if (callCount <= 500) {
-    return { tier: 'standard', pricePerCall: 0.01, callsInTier: 500 - callCount + 1 };
-  }
-  return { tier: 'premium', pricePerCall: 0.03, callsInTier: Infinity };
-}
 
-/**
- * Calculates total cost for a batch of calls.
- */
-export function calculateBatchCost(startCount: number, numCalls: number, priority = false): number {
-  let total = 0;
-  for (let i = 0; i < numCalls; i++) {
-    total += getTierPrice(startCount + i, priority).pricePerCall;
+  if (call_count <= 50) {
+    return 0.00;
   }
-  return Math.round(total * 1e6) / 1e6; // round to 6 decimals (USDC precision)
+
+  if (call_count <= 500) {
+    return 0.01;
+  }
+
+  return 0.03;
 }
