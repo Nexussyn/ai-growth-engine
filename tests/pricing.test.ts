@@ -1,31 +1,34 @@
-import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { getTierPrice, calculateBatchCost } from '../src/pricing/tier-engine.ts';
+import { getTierPrice, resolvePricingTier } from '../src/pricing/tier-engine';
 
-Deno.test('Tier 1: free for first 50 calls', () => {
-  assertEquals(getTierPrice(1).tier, 'free');
-  assertEquals(getTierPrice(50).tier, 'free');
-  assertEquals(getTierPrice(1).pricePerCall, 0.00);
-});
+describe('Tiered Pricing Engine', () => {
+  test('Tier 1 – Free (≤ 50 calls, non‑priority)', () => {
+    expect(getTierPrice(0, false)).toBe(0.0);
+    expect(getTierPrice(50, false)).toBe(0.0);
+    expect(resolvePricingTier(25, false)).toBe('free');
+  });
 
-Deno.test('Tier 2: standard for calls 51-500', () => {
-  assertEquals(getTierPrice(51).tier, 'standard');
-  assertEquals(getTierPrice(500).tier, 'standard');
-  assertEquals(getTierPrice(51).pricePerCall, 0.01);
-});
+  test('Tier 2 – Standard (51‑500 calls, non‑priority)', () => {
+    expect(getTierPrice(51, false)).toBe(0.01);
+    expect(getTierPrice(200, false)).toBe(0.01);
+    expect(getTierPrice(500, false)).toBe(0.01);
+    expect(resolvePricingTier(300, false)).toBe('standard');
+  });
 
-Deno.test('Tier 3: premium for calls 500+', () => {
-  assertEquals(getTierPrice(501).tier, 'premium');
-  assertEquals(getTierPrice(501).pricePerCall, 0.03);
-});
+  test('Tier 3 – Premium (> 500 calls, non‑priority)', () => {
+    expect(getTierPrice(501, false)).toBe(0.03);
+    expect(getTierPrice(1000, false)).toBe(0.03);
+    expect(resolvePricingTier(750, false)).toBe('premium');
+  });
 
-Deno.test('Tier 4: priority flag overrides all', () => {
-  assertEquals(getTierPrice(1, true).tier, 'priority');
-  assertEquals(getTierPrice(1000, true).pricePerCall, 0.10);
-});
+  test('Tier 4 – Priority (any call count, priority flag true)', () => {
+    expect(getTierPrice(0, true)).toBe(0.10);
+    expect(getTierPrice(100, true)).toBe(0.10);
+    expect(getTierPrice(1000, true)).toBe(0.10);
+    expect(resolvePricingTier(10, true)).toBe('priority');
+  });
 
-Deno.test('Batch cost calculation', () => {
-  // 10 free calls = $0
-  assertEquals(calculateBatchCost(1, 10), 0);
-  // 1 standard call
-  assertEquals(calculateBatchCost(51, 1), 0.01);
+  test('Negative call counts are treated as zero (free tier)', () => {
+    expect(getTierPrice(-5, false)).toBe(0.0);
+    expect(resolvePricingTier(-10, false)).toBe('free');
+  });
 });
