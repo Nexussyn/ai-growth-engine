@@ -1,104 +1,140 @@
 /**
- * Content Generation Agent — Issue #5
- * Generates tweet, thread, and blog post from a bounty completion event.
- * Uses Groq Llama (free tier: 6000 req/min) or Gemini Flash (free 1500/day).
+ * Content Generation Agent
+ *
+ * Generates a tweet, a 5‑tweet thread and a short blog post for a completed bounty.
+ * The generated content is stored in the `outreach_sent` table.
+ *
+ * Uses the free Groq Llama 3 model (or any OpenAI‑compatible endpoint) via HTTP.
+ *
+ * Environment variables:
+ *   - GROQ_API_KEY          – API key for Groq
+ *   - SUPABASE_URL          – Supabase project URL
+ *   - SUPABASE_SERVICE_ROLE – Supabase service role key (allows server‑side writes)
+ *
+ * Optional (not required for the bounty):
+ *   - TWITTER_BEARER_TOKEN  – If present, the agent could auto‑post to X.
  */
 
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? '';
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
+// ---------------------------------------------------------------------------
+// Supabase client (server‑side)
+const supabase: SupabaseClient = createClient(
+  process.env.SUPABASE_URL ?? '',
+  process.env.SUPABASE_SERVICE_ROLE ?? '',
+);
 
-const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-
-export interface ContentOutput {
-  tweet: string;        // 280 chars max
-  thread: string[];     // 5 tweets
-  blog_post: string;    // ~300 words
+// ---------------------------------------------------------------------------
+// Types
+export interface GeneratedContent {
+  tweet: string;
+  thread: string; // newline‑separated tweets
+  blog_post: string;
 }
 
-async function callLLM(prompt: string): Promise<string> {
-  // Try Groq first (faster, higher free limit)
-  if (GROQ_API_KEY) {
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama3-8b-8192',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1024
-      })
-    });
-    const data = await r.json();
-    return data.choices?.[0]?.message?.content ?? '';
+// ---------------------------------------------------------------------------
+// Helper – call Groq (OpenAI compatible) LLM
+async function callGroq(prompt: string): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error('GROQ_API_KEY is not set');
   }
 
-  // Fallback: Gemini Flash
-  if (GEMINI_API_KEY) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    const data = await r.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-  }
-
-  throw new Error('No LLM API key configured. Set GROQ_API_KEY or GEMINI_API_KEY.');
-}
-
-export async function generateContent(bountyId: string): Promise<ContentOutput> {
-  // Fetch bounty details
-  const { data: bounty } = await db
-    .from('bounty_executions')
-    .select('title, description, reward_amount, repo_owner, repo_name, pr_number')
-    .eq('id', bountyId)
-    .maybeSingle();
-
-  if (!bounty) throw new Error(`Bounty not found: ${bountyId}`);
-
-  const ctx = `Bounty: "${bounty.title}" | Reward: $${bounty.reward_amount} USDC | Repo: ${bounty.repo_owner}/${bounty.repo_name} | PR: #${bounty.pr_number}`;
-
-  // Generate tweet
-  const tweet = await callLLM(
-    `Write a single tweet (max 280 chars) announcing this completed open-source bounty. Be enthusiastic, include the reward amount and a call to action. No hashtag spam. Context: ${ctx}`
-  );
-
-  // Generate thread
-  const threadRaw = await callLLM(
-    `Write a 5-tweet Twitter thread announcing this completed bounty and explaining why open AI bounties matter. Each tweet separated by "---". Context: ${ctx}`
-  );
-  const thread = threadRaw.split('---').map(t => t.trim()).filter(Boolean).slice(0, 5);
-
-  // Generate blog post
-  const blog_post = await callLLM(
-    `Write a 300-word blog post about this completed open-source AI bounty. Include: what was built, why it matters, how others can participate. Professional but accessible tone. Context: ${ctx}`
-  );
-
-  // Store in outreach_sent
-  await db.from('outreach_sent').insert({
-    bounty_id: bountyId,
-    channel: 'content_agent',
-    content: JSON.stringify({ tweet, thread, blog_post }),
-    sent_at: new Date().toISOString()
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'llama3-70b-8192', // free tier model
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 1024,
+    }),
   });
 
-  return { tweet: tweet.slice(0, 280), thread, blog_post };
+  if (!response.ok) {
+    const txt = await response.text();
+    throw new Error(`Groq API error: ${response.status} ${txt}`);
+  }
+
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content?.trim();
+  if (!content) {
+    throw new Error('Empty response from LLM');
+  }
+  return content;
 }
 
-// Edge Function entry point
-Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
-  try {
-    const { bounty_id } = await req.json();
-    if (!bounty_id) return new Response(JSON.stringify({ error: 'bounty_id required' }), { status: 400 });
-    const content = await generateContent(bounty_id);
-    return new Response(JSON.stringify({ ok: true, content }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+// ---------------------------------------------------------------------------
+// Core function
+export async function generate_content(bounty_id: number): Promise<GeneratedContent> {
+  // 1️⃣ Fetch bounty details
+  const { data: bounty, error } = await supabase
+    .from('bounties')
+    .select('id, title, scope, outcome, execution_status')
+    .eq('id', bounty_id)
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to fetch bounty ${bounty_id}: ${error.message}`);
   }
-});
+
+  if (!bounty) {
+    throw new Error(`Bounty ${bounty_id} not found`);
+  }
+
+  if (bounty.execution_status !== 'done') {
+    throw new Error(`Bounty ${bounty_id} is not completed (status=${bounty.execution_status})`);
+  }
+
+  const { title, scope, outcome } = bounty as {
+    title: string;
+    scope: string;
+    outcome: string;
+  };
+
+  // 2️⃣ Build prompts
+  const tweetPrompt = `Write a concise, 280‑character (or fewer) tweet that announces the completion of a bounty titled "${title}". Include a brief mention of its scope ("${scope}") and the outcome ("${outcome}"). Use an enthusiastic tone.`;
+  const threadPrompt = `Write a 5‑tweet thread (each tweet ≤ 280 characters) that expands on the bounty titled "${title}". The thread should cover:\n1️⃣ What the bounty was about (scope)\n2️⃣ Why it mattered\n3️⃣ The solution/outcome\n4️⃣ Key take‑aways\n5️⃣ A call‑to‑action or next steps.\nSeparate each tweet with a newline.`;
+  const blogPrompt = `Write a short blog post (~300 words) about the bounty titled "${title}". Include:\n- A brief introduction of the problem (scope)\n- The solution/outcome\n- Why this matters for the community\n- Any interesting technical details\n- A concluding thought.\nMake it readable and engaging.`;
+
+  // 3️⃣ Generate content via LLM
+  const [tweet, thread, blog_post] = await Promise.all([
+    callGroq(tweetPrompt),
+    callGroq(threadPrompt),
+    callGroq(blogPrompt),
+  ]);
+
+  // 4️⃣ Persist generated content
+  const { error: insertError } = await supabase
+    .from('outreach_sent')
+    .insert({
+      bounty_id,
+      tweet,
+      thread,
+      blog_post,
+    })
+    .select();
+
+  if (insertError) {
+    throw new Error(`Failed to store generated content: ${insertError.message}`);
+  }
+
+  // 5️⃣ Return the generated payload
+  return { tweet, thread, blog_post };
+}
+
+// ---------------------------------------------------------------------------
+// Optional: expose a simple CLI for manual testing
+if (require.main === module) {
+  const id = Number(process.argv[2]);
+  if (!id) {
+    console.error('Usage: ts-node src/agents/content-agent.ts <bounty_id>');
+    process.exit(1);
+  }
+  generate_content(id)
+    .then((c) => console.log('Generated content:', c))
+    .catch((e) => console.error(e));
+}
