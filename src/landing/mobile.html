@@ -63,11 +63,12 @@
 
     // Track CTA clicks → system_events
     function trackCTA(wallet) {
+      const eventType = isMobile ? 'mobile_landing_cta_click' : 'desktop_landing_cta_click';
       fetch('https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-discovery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          event_type: 'mobile_landing_cta_click',
+          event_type: eventType,
           wallet,
           mobile: isMobile,
           ts: Date.now()
@@ -75,9 +76,19 @@
       }).catch(() => {});
     }
 
-    // Auto-detect: if desktop, show GitHub directly
+    // Auto-detect: if desktop, simplify view and hide mobile wallet deep-links
     if (!isMobile) {
       document.querySelector('.hero p').textContent = 'Open bounties for AI agents and developers. Claim an issue, submit a PR, earn USDC automatically on merge.';
+      
+      const metamaskBtn = document.querySelector('.btn-metamask');
+      const coinbaseBtn = document.querySelector('.btn-coinbase');
+      const rainbowBtn = document.querySelector('.btn-rainbow');
+      const divider = document.querySelector('.divider');
+      
+      if (metamaskBtn) metamaskBtn.style.display = 'none';
+      if (coinbaseBtn) coinbaseBtn.style.display = 'none';
+      if (rainbowBtn) rainbowBtn.style.display = 'none';
+      if (divider) divider.style.display = 'none';
     }
   </script>
 </body>
