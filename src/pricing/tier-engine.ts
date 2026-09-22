@@ -1,43 +1,63 @@
 /**
- * Tiered Pricing Engine — Issue #1
- * Implements 4-tier pricing for x402 API calls
+ * Tiered pricing engine for x402 API calls.
+ *
+ * Pricing rules:
+ *  - Tier 4 (Priority):   $0.10 per call   (overrides all other tiers)
+ *  - Tier 1 (Free):       $0.00 per call   (first 50 calls)
+ *  - Tier 2 (Standard):   $0.01 per call   (calls 51‑500)
+ *  - Tier 3 (Premium):    $0.03 per call   (calls > 500)
+ *
+ * The function returns the *per‑call* price based on the total number of
+ * calls a user has made and whether the request is flagged as priority.
  */
 
-export type Tier = 'free' | 'standard' | 'premium' | 'priority';
+export type PricingTier = 'free' | 'standard' | 'premium' | 'priority';
 
-export interface TierResult {
-  tier: Tier;
-  pricePerCall: number; // in USDC
-  callsInTier: number;
+/**
+ * Determines the pricing tier for a given usage snapshot.
+ *
+ * @param callCount      Total number of API calls the user has made so far.
+ * @param priorityFlag  Whether the current request is marked as priority.
+ * @returns The per‑call price in USDC (as a number with two decimal places).
+ */
+export function getTierPrice(callCount: number, priorityFlag: boolean): number {
+  // Guard against negative call counts – treat them as zero.
+  const safeCallCount = Math.max(0, Math.floor(callCount));
+
+  // Priority flag always forces the highest tier.
+  if (priorityFlag) {
+    return 0.10;
+  }
+
+  if (safeCallCount <= 50) {
+    // Tier 1 – Free
+    return 0.0;
+  }
+
+  if (safeCallCount <= 500) {
+    // Tier 2 – Standard
+    return 0.01;
+  }
+
+  // Tier 3 – Premium
+  return 0.03;
 }
 
 /**
- * Returns the price per call based on total call count and priority flag.
- * - Tier 1 (Free):     calls 1–50     → $0.00
- * - Tier 2 (Standard): calls 51–500  → $0.01
- * - Tier 3 (Premium):  calls 500+    → $0.03
- * - Tier 4 (Priority): priority=true → $0.10
+ * Helper that returns the textual tier name for reporting / storage.
+ *
+ * @param callCount
+ * @param priorityFlag
  */
-export function getTierPrice(callCount: number, priorityFlag = false): TierResult {
+export function resolvePricingTier(callCount: number, priorityFlag: boolean): PricingTier {
   if (priorityFlag) {
-    return { tier: 'priority', pricePerCall: 0.10, callsInTier: 1 };
+    return 'priority';
   }
   if (callCount <= 50) {
-    return { tier: 'free', pricePerCall: 0.00, callsInTier: 50 - callCount + 1 };
+    return 'free';
   }
   if (callCount <= 500) {
-    return { tier: 'standard', pricePerCall: 0.01, callsInTier: 500 - callCount + 1 };
+    return 'standard';
   }
-  return { tier: 'premium', pricePerCall: 0.03, callsInTier: Infinity };
-}
-
-/**
- * Calculates total cost for a batch of calls.
- */
-export function calculateBatchCost(startCount: number, numCalls: number, priority = false): number {
-  let total = 0;
-  for (let i = 0; i < numCalls; i++) {
-    total += getTierPrice(startCount + i, priority).pricePerCall;
-  }
-  return Math.round(total * 1e6) / 1e6; // round to 6 decimals (USDC precision)
+  return 'premium';
 }
