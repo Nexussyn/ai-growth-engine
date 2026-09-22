@@ -12,14 +12,22 @@ CREATE TABLE IF NOT EXISTS upsell_triggers (
 
 CREATE OR REPLACE FUNCTION check_upsell_trigger(p_user_id TEXT, p_call_count INT)
 RETURNS JSONB AS $$
+DECLARE
+  inserted_rows INT;
 BEGIN
+  IF p_user_id IS NULL OR btrim(p_user_id) = '' OR p_call_count IS NULL OR p_call_count < 0 THEN
+    RAISE EXCEPTION 'user ID and nonnegative call count required' USING ERRCODE = '22023';
+  END IF;
   -- Fire at 5th call (50% of 10 free calls)
   IF p_call_count = 5 THEN
     INSERT INTO upsell_triggers (user_id, trigger_type)
     VALUES (p_user_id, 'free_limit_50pct')
     ON CONFLICT (user_id, trigger_type) DO NOTHING;
-
-    RETURN jsonb_build_object('upsell', true, 'prompt', 'You have used 50% of your free calls. Upgrade for unlimited access.');
+    GET DIAGNOSTICS inserted_rows = ROW_COUNT;
+    -- Only the transaction that inserts the unique row may show the prompt.
+    IF inserted_rows = 1 THEN
+      RETURN jsonb_build_object('upsell', true, 'prompt', 'You have used 5 of your 10 free calls. View upgrade options.');
+    END IF;
   END IF;
   RETURN jsonb_build_object('upsell', false);
 END;
