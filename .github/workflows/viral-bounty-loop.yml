@@ -1,0 +1,27 @@
+name: Viral Bounty Loop
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  viral-loop:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify system of merge + trigger new bounty generation
+        run: |
+          # Notify Supabase that a bounty was completed
+          curl -s -X POST "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/bounty-executor" \
+            -H "Content-Type: application/json" \
+            -d '{"event":"pr_merged","pr_number":${{ github.event.pull_request.number }},"author":"${{ github.event.pull_request.user.login }}","repo":"${{ github.repository }}"}'
+
+          # Trigger auto-generation of new bounty issues
+          curl -s -X POST "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/bounty-hunter" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"generate_new_bounties","repo":"${{ github.repository }}","trigger":"post_merge"}'
+
+          # Submit to A2A registries to broadcast new opportunities
+          curl -s -X POST "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-public-federation" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"broadcast","repo":"ai-growth-engine","event":"new_bounties_available"}'
