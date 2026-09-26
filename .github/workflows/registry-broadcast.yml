@@ -1,0 +1,32 @@
+name: Registry Broadcast
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday 9am
+  push:
+    branches: [main]
+    paths:
+      - '.well-known/agent.json'
+      - 'README.md'
+
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Submit to Agentverse (Fetch.ai)
+        run: |
+          curl -s -X POST "https://agentverse.ai/v1/agents/register" \
+            -H "Content-Type: application/json" \
+            -d '{"url":"https://github.com/Nexussyn/ai-growth-engine","manifest":"https://raw.githubusercontent.com/Nexussyn/ai-growth-engine/main/.well-known/agent.json"}' || true
+
+      - name: Submit to ACP Registry
+        run: |
+          curl -s -X POST "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/a2a-registry-submit" \
+            -H "Content-Type: application/json" \
+            -d '{"agent_url":"https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/well-known-agent","repo":"https://github.com/Nexussyn/ai-growth-engine"}'
+
+      - name: Submit to Runtime Open Federation
+        run: |
+          curl -s -X POST "https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/runtime-public-federation" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"register","name":"ai-growth-engine","repo":"https://github.com/Nexussyn/ai-growth-engine","endpoints":{"x402":"https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/x402-seller","a2a":"https://kjtirbnxxymeumycrhqv.supabase.co/functions/v1/a2a-endpoint"}}'

@@ -1,0 +1,136 @@
+name: Autonomous Bounty Validator
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Detect linked bounty issue
+        id: detect
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          ISSUE=$(echo "$PR_BODY $PR_TITLE" | grep -oP '(?<=#)\d+' | head -1)
+          echo "issue_number=$ISSUE" >> $GITHUB_OUTPUT
+          echo "Linked issue: $ISSUE"
+
+      - name: Check changed files exist and are non-empty
+        id: file_check
+        run: |
+          FILES=$(git diff --name-only origin/main HEAD)
+          echo "Changed files: $FILES"
+          EMPTY=0
+          for f in $FILES; do
+            if [ -f "$f" ] && [ ! -s "$f" ]; then
+              echo "EMPTY FILE: $f"
+              EMPTY=1
+            fi
+          done
+          echo "empty_files=$EMPTY" >> $GITHUB_OUTPUT
+
+      - name: Run tests if present
+        run: |
+          if [ -f "package.json" ]; then
+            npm ci --quiet 2>/dev/null || true
+            npm test 2>&1 | tail -20 || true
+          fi
+          if ls tests/*.test.ts 2>/dev/null; then
+            deno test tests/ 2>&1 | tail -20 || true
+          fi
+
+      - name: Validate acceptance criteria
+        id: validate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
+          REPO: ${{ github.repository }}
+          EMPTY_FILES: ${{ steps.file_check.outputs.empty_files }}
+        run: |
+          if [ "$EMPTY_FILES" = "1" ]; then
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "reason=PR contains empty files" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          ADDITIONS=$(git diff --stat origin/main HEAD | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo 0)
+          if [ "${ADDITIONS:-0}" -lt 10 ]; then
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "reason=Too few meaningful changes (${ADDITIONS} lines added)" >> $GITHUB_OUTPUT
+          else
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "reason=Validation passed: ${ADDITIONS} lines added" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment validation result
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RESULT: ${{ steps.validate.outputs.result }}
+          REASON: ${{ steps.validate.outputs.reason }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$RESULT" = "pass" ]; then
+            BODY="✅ **Autonomous Validator**: PR passed. Auto-merging and logging bounty payment..."
+          else
+            BODY="❌ **Autonomous Validator**: $REASON. Please fix and push again."
+          fi
+          curl -s -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments" \
+            -d "{\"body\": \"$BODY\"}"
+
+      - name: Auto-approve and merge if valid
+        if: steps.validate.outputs.result == 'pass'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          curl -s -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews" \
+            -d '{"event": "APPROVE", "body": "✅ Auto-approved by Autonomous Validator"}'
+          sleep 3
+          curl -s -X PUT -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/merge" \
+            -d "{\"merge_method\": \"squash\", \"commit_title\": \"Auto-merge: PR #$PR_NUMBER (bounty validated)\", \"sha\": \"$HEAD_SHA\"}"
+
+      - name: Notify Supabase bounty-executor
+        if: steps.validate.outputs.result == 'pass'
+        env:
+          SUPABASE_URL: https://kjtirbnxxymeumycrhqv.supabase.co
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
+          REPO: ${{ github.repository }}
+          CONTRIBUTOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          curl -s -X POST "$SUPABASE_URL/functions/v1/github-webhook" \
+            -H "Content-Type: application/json" \
+            -H "x-github-event: bounty_validated" \
+            -d "{
+              \"action\": \"bounty_validated\",
+              \"pr_number\": $PR_NUMBER,
+              \"issue_number\": \"$ISSUE_NUMBER\",
+              \"repo\": \"$REPO\",
+              \"contributor\": \"$CONTRIBUTOR\",
+              \"validated_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+            }"

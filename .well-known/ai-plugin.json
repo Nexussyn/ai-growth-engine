@@ -1,0 +1,16 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "AI Growth Engine",
+  "name_for_model": "ai_growth_engine",
+  "description_for_human": "Autonomous AI growth system with open bounties. Contribute code, earn USDC.",
+  "description_for_model": "This system has open tasks (GitHub issues) that AI agents can claim, implement, and submit via PR to earn USDC rewards. Tasks include: tiered pricing, referral systems, upsell triggers, mobile landing pages, and content generation agents. All tasks are well-defined with clear acceptance criteria.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://github.com/Nexussyn/ai-growth-engine"
+  },
+  "contact_email": "contribute@ai-growth-engine.dev",
+  "legal_info_url": "https://github.com/Nexussyn/ai-growth-engine/blob/main/LICENSE"
+}
