@@ -1,104 +1,161 @@
 /**
  * Content Generation Agent — Issue #5
- * Generates tweet, thread, and blog post from a bounty completion event.
- * Uses Groq Llama (free tier: 6000 req/min) or Gemini Flash (free 1500/day).
+ * Generates a bounty-specific tweet, 5-post thread, and ~300-word blog post.
+ * Stores one generated result per bounty/channel and is safe to retry.
  */
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import {
+  buildContext,
+  clipTweet,
+  splitThread,
+  validateContent,
+  type ContentOutput,
+} from './content-utils.ts';
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? '';
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
 
-const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-
-export interface ContentOutput {
-  tweet: string;        // 280 chars max
-  thread: string[];     // 5 tweets
-  blog_post: string;    // ~300 words
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
 }
 
+const db = createClient(SUPABASE_URL, SERVICE_KEY, {
+  auth: { persistSession: false },
+});
+
 async function callLLM(prompt: string): Promise<string> {
-  // Try Groq first (faster, higher free limit)
   if (GROQ_API_KEY) {
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         model: 'llama3-8b-8192',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1024
-      })
+        max_tokens: 1200,
+        temperature: 0.8,
+      }),
     });
-    const data = await r.json();
-    return data.choices?.[0]?.message?.content ?? '';
+
+    if (response.ok) {
+      const data = await response.json();
+      const text = data.choices?.[0]?.message?.content;
+      if (text) return text;
+    }
   }
 
-  // Fallback: Gemini Flash
   if (GEMINI_API_KEY) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    const data = await r.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.8, maxOutputTokens: 1200 },
+        }),
+      },
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) return text;
+    }
   }
 
-  throw new Error('No LLM API key configured. Set GROQ_API_KEY or GEMINI_API_KEY.');
+  throw new Error('No working LLM configured. Set GROQ_API_KEY or GEMINI_API_KEY.');
 }
 
 export async function generateContent(bountyId: string): Promise<ContentOutput> {
-  // Fetch bounty details
-  const { data: bounty } = await db
+  // Idempotency: return the existing generated result if this bounty was already processed.
+  const { data: existing } = await db
+    .from('outreach_sent')
+    .select('content')
+    .eq('bounty_id', bountyId)
+    .eq('channel', 'content_agent')
+    .maybeSingle();
+
+  if (existing?.content) {
+    const parsed = typeof existing.content === 'string'
+      ? JSON.parse(existing.content)
+      : existing.content;
+    validateContent(parsed);
+    return parsed;
+  }
+
+  const { data: bounty, error } = await db
     .from('bounty_executions')
     .select('title, description, reward_amount, repo_owner, repo_name, pr_number')
     .eq('id', bountyId)
     .maybeSingle();
 
+  if (error) throw new Error(`Failed to read bounty: ${error.message}`);
   if (!bounty) throw new Error(`Bounty not found: ${bountyId}`);
 
-  const ctx = `Bounty: "${bounty.title}" | Reward: $${bounty.reward_amount} USDC | Repo: ${bounty.repo_owner}/${bounty.repo_name} | PR: #${bounty.pr_number}`;
+  const ctx = buildContext(bounty);
 
-  // Generate tweet
-  const tweet = await callLLM(
-    `Write a single tweet (max 280 chars) announcing this completed open-source bounty. Be enthusiastic, include the reward amount and a call to action. No hashtag spam. Context: ${ctx}`
-  );
+  const tweet = clipTweet(await callLLM(
+    `Write one original tweet, maximum 280 characters, announcing this completed open-source bounty. Mention the concrete work and reward when available. Make it specific to this bounty, not a generic template. Do not invent results. Context: ${ctx}`,
+  ));
 
-  // Generate thread
-  const threadRaw = await callLLM(
-    `Write a 5-tweet Twitter thread announcing this completed bounty and explaining why open AI bounties matter. Each tweet separated by "---". Context: ${ctx}`
-  );
-  const thread = threadRaw.split('---').map(t => t.trim()).filter(Boolean).slice(0, 5);
+  let thread: string[] = [];
+  for (let attempt = 0; attempt < 2 && thread.length !== 5; attempt++) {
+    const raw = await callLLM(
+      `Write exactly 5 original tweets as a thread announcing this completed bounty. Each post must add new information. Separate posts with "---". Make the thread specific to the bounty context and do not invent facts. Context: ${ctx}`,
+    );
+    thread = splitThread(raw);
+  }
 
-  // Generate blog post
   const blog_post = await callLLM(
-    `Write a 300-word blog post about this completed open-source AI bounty. Include: what was built, why it matters, how others can participate. Professional but accessible tone. Context: ${ctx}`
+    `Write an original approximately 300-word blog post about this completed open-source AI bounty. Cover what was built, the concrete problem it solves, and how contributors can participate. Stay grounded in the supplied context and do not invent outcomes. Context: ${ctx}`,
   );
 
-  // Store in outreach_sent
-  await db.from('outreach_sent').insert({
+  const output: ContentOutput = { tweet, thread, blog_post: blog_post.trim() };
+  validateContent(output);
+
+  const { error: insertError } = await db.from('outreach_sent').insert({
     bounty_id: bountyId,
     channel: 'content_agent',
-    content: JSON.stringify({ tweet, thread, blog_post }),
-    sent_at: new Date().toISOString()
+    content: JSON.stringify(output),
+    sent_at: new Date().toISOString(),
   });
 
-  return { tweet: tweet.slice(0, 280), thread, blog_post };
+  if (insertError) throw new Error(`Failed to store generated content: ${insertError.message}`);
+
+  return output;
 }
 
-// Edge Function entry point
+// Acceptance-criteria alias.
+export const generate_content = generateContent;
+
 Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+  if (req.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
+
   try {
     const { bounty_id } = await req.json();
-    if (!bounty_id) return new Response(JSON.stringify({ error: 'bounty_id required' }), { status: 400 });
+    if (!bounty_id) {
+      return new Response(JSON.stringify({ error: 'bounty_id required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const content = await generateContent(bounty_id);
     return new Response(JSON.stringify({ ok: true, content }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: String(error) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 });
