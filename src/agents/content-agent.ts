@@ -70,22 +70,26 @@ export async function generateContent(bountyId: string): Promise<ContentOutput> 
   const threadRaw = await callLLM(
     `Write a 5-tweet Twitter thread announcing this completed bounty and explaining why open AI bounties matter. Each tweet separated by "---". Context: ${ctx}`
   );
-  const thread = threadRaw.split('---').map(t => t.trim()).filter(Boolean).slice(0, 5);
+  const thread = threadRaw.split('---').map(t => t.trim()).filter(Boolean);
+  if (thread.length !== 5) throw new Error('LLM must return exactly 5 thread posts');
 
   // Generate blog post
   const blog_post = await callLLM(
     `Write a 300-word blog post about this completed open-source AI bounty. Include: what was built, why it matters, how others can participate. Professional but accessible tone. Context: ${ctx}`
   );
 
-  // Store in outreach_sent
-  await db.from('outreach_sent').insert({
+  if (!blog_post.trim()) throw new Error('LLM returned an empty blog post');
+
+  // Store in outreach_sent; do not report success if persistence fails.
+  const { error: persistError } = await db.from('outreach_sent').insert({
     bounty_id: bountyId,
     channel: 'content_agent',
     content: JSON.stringify({ tweet, thread, blog_post }),
     sent_at: new Date().toISOString()
   });
+  if (persistError) throw persistError;
 
-  return { tweet: tweet.slice(0, 280), thread, blog_post };
+  return { tweet: tweet.trim().slice(0, 280), thread, blog_post: blog_post.trim() };
 }
 
 // Edge Function entry point
