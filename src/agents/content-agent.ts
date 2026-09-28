@@ -5,6 +5,10 @@
  */
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import {
+  generateBountyContent,
+  type ContentOutput,
+} from './content-generator.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -12,12 +16,6 @@ const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? '';
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-
-export interface ContentOutput {
-  tweet: string;        // 280 chars max
-  thread: string[];     // 5 tweets
-  blog_post: string;    // ~300 words
-}
 
 async function callLLM(prompt: string): Promise<string> {
   // Try Groq first (faster, higher free limit)
@@ -59,33 +57,18 @@ export async function generateContent(bountyId: string): Promise<ContentOutput> 
 
   if (!bounty) throw new Error(`Bounty not found: ${bountyId}`);
 
-  const ctx = `Bounty: "${bounty.title}" | Reward: $${bounty.reward_amount} USDC | Repo: ${bounty.repo_owner}/${bounty.repo_name} | PR: #${bounty.pr_number}`;
-
-  // Generate tweet
-  const tweet = await callLLM(
-    `Write a single tweet (max 280 chars) announcing this completed open-source bounty. Be enthusiastic, include the reward amount and a call to action. No hashtag spam. Context: ${ctx}`
-  );
-
-  // Generate thread
-  const threadRaw = await callLLM(
-    `Write a 5-tweet Twitter thread announcing this completed bounty and explaining why open AI bounties matter. Each tweet separated by "---". Context: ${ctx}`
-  );
-  const thread = threadRaw.split('---').map(t => t.trim()).filter(Boolean).slice(0, 5);
-
-  // Generate blog post
-  const blog_post = await callLLM(
-    `Write a 300-word blog post about this completed open-source AI bounty. Include: what was built, why it matters, how others can participate. Professional but accessible tone. Context: ${ctx}`
-  );
+  const content = await generateBountyContent({ id: bountyId, ...bounty }, callLLM);
 
   // Store in outreach_sent
-  await db.from('outreach_sent').insert({
+  const { error } = await db.from('outreach_sent').insert({
     bounty_id: bountyId,
     channel: 'content_agent',
-    content: JSON.stringify({ tweet, thread, blog_post }),
+    content: JSON.stringify(content),
     sent_at: new Date().toISOString()
   });
+  if (error) throw new Error(`Failed to store generated content: ${error.message}`);
 
-  return { tweet: tweet.slice(0, 280), thread, blog_post };
+  return content;
 }
 
 // Edge Function entry point
