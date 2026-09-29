@@ -29,3 +29,10 @@ Deno.test('Batch cost calculation', () => {
   // 1 standard call
   assertEquals(calculateBatchCost(51, 1), 0.01);
 });
+
+Deno.test('get_tier_price snake_case function returns exact tier prices', () => {
+  assertEquals(getTierPrice(10).pricePerCall, 0.00);
+  assertEquals(getTierPrice(100).pricePerCall, 0.01);
+  assertEquals(getTierPrice(600).pricePerCall, 0.03);
+  assertEquals(getTierPrice(10, true).pricePerCall, 0.10);
+});
