@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b12" />
+  <title>AI Growth Engine — Mobile-First</title>
+  <style>
+    :root {
+      --bg: #0b0b12;
+      --fg: #f5f5fa;
+      --accent: #6d5efc;
+      --accent-2: #22d3ee;
+      --muted: #9aa0b4;
+      --card: #15151f;
+      --radius: 18px;
+      --tap: 48px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { min-height: 100dvh; display: flex; flex-direction: column; }
+    .wrap { width: 100%; max-width: 560px; margin: 0 auto; padding: 20px 18px 32px;
+      display: flex; flex-direction: column; gap: 22px; flex: 1; }
+    header { display: flex; align-items: center; gap: 10px; padding-top: env(safe-area-inset-top); }
+    .logo { width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+    header h1 { font-size: 1.05rem; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+    .hero { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
+    .hero h2 { font-size: clamp(1.6rem, 8vw, 2.2rem); line-height: 1.1; margin: 0;
+      font-weight: 800; letter-spacing: -0.02em; }
+    .hero h2 span { background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero p { color: var(--muted); font-size: 1rem; line-height: 1.5; margin: 0; }
+    .cta { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+    .btn { display: flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: var(--tap); padding: 14px 18px; border-radius: var(--radius);
+      font-size: 1rem; font-weight: 700; text-decoration: none; border: none;
+      cursor: pointer; transition: transform .08s ease, opacity .15s ease; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #0b0b12; box-shadow: 0 10px 30px -8px rgba(109,94,252,.7); }
+    .btn-secondary { background: var(--card); color: var(--fg);
+      border: 1px solid rgba(255,255,255,.08); }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .card { background: var(--card); border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius); padding: 16px; }
+    .card h3 { margin: 0 0 6px; font-size: .95rem; }
+    .card p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.45; }
+    footer { margin-top: auto; padding-top: 18px; color: var(--muted); font-size: .78rem;
+      text-align: center; padding-bottom: env(safe-area-inset-bottom); }
+    @media (min-width: 480px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .cta { flex-direction: row; }
+      .cta .btn { flex: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" aria-hidden="true"></div>
+      <h1>AI Growth Engine</h1>
+    </header>
+
+    <section class="hero">
+      <h2>Grow revenue <span>on autopilot</span></h2>
+      <p>Connect your wallet and let autonomous agents optimize pricing, upsells, and referrals — mobile-first, no app store required.</p>
+    </section>
+
+    <section class="cta">
+      <!-- Wallet deep-link: opens in-wallet dapp browsers (MetaMask, Coinbase, Rainbow) -->
+      <a class="btn btn-primary"
+         href="https://ai-growth-engine.app/connect"
+         data-wallet-deeplink="1"
+         rel="noopener">
+        Connect Wallet
+      </a>
+      <a class="btn btn-secondary" href="#features">See how it works</a>
+    </section>
+
+    <section id="features" class="grid">
+      <div class="card"><h3>+30% Pricing</h3><p>Dynamic tiered pricing tuned per cohort.</p></div>
+      <div class="card"><h3>+25% Upsell</h3><p>Auto-triggered offers after the 5th call.</p></div>
+      <div class="card"><h3>+20% Referral</h3><p>Reward loops that compound conversion.</p></div>
+      <div class="card"><h3>Wallet-native</h3><p>Deep-links straight into your wallet browser.</p></div>
+    </section>
+
+    <footer>© AI Growth Engine — built for mobile.</footer>
+  </div>
+
+  <script>
+    // Progressive enhancement: detect wallet in-app browsers and rewrite the
+    // connect link to a universal deep-link that reopens in the correct wallet.
+    (function () {
+      var ua = navigator.userAgent || "";
+      var isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+      var links = document.querySelectorAll('[data-wallet-deeplink]');
+      if (!isMobile) return;
+
+      // If we are NOT already inside a wallet browser, offer a deep-link that
+      // routes the user through the wallet's universal link handler.
+      var inWallet = /MetaMask|CoinbaseWallet|Rainbow|Trust|TokenPocket/i.test(ua);
+      if (inWallet) return;
+
+      var target = "https://ai-growth-engine.app/connect";
+      var deep = "https://metamask.app.link/dapp/" + target.replace(/^https?:\/\//, "");
+      links.forEach(function (el) {
+        el.setAttribute("href", deep);
+        el.addEventListener("click", function () {
+          // Fallback: if the wallet app is not installed, go to the web app.
+          setTimeout(function () { window.location.href = target; }, 1200);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
