@@ -19,6 +19,11 @@ export interface TierResult {
  * - Tier 4 (Priority): priority=true → $0.10
  */
 export function getTierPrice(callCount: number, priorityFlag = false): TierResult {
+  if (!Number.isInteger(callCount) || callCount < 1) {
+    throw new RangeError(
+      `callCount must be a positive integer (1-based call number), got ${callCount}`,
+    );
+  }
   if (priorityFlag) {
     return { tier: 'priority', pricePerCall: 0.10, callsInTier: 1 };
   }
@@ -35,9 +40,25 @@ export function getTierPrice(callCount: number, priorityFlag = false): TierResul
  * Calculates total cost for a batch of calls.
  */
 export function calculateBatchCost(startCount: number, numCalls: number, priority = false): number {
+  if (!Number.isInteger(startCount) || startCount < 1) {
+    throw new RangeError(
+      `startCount must be a positive integer (1-based call number), got ${startCount}`,
+    );
+  }
+  if (!Number.isInteger(numCalls) || numCalls < 0) {
+    throw new RangeError(
+      `numCalls must be a non-negative integer, got ${numCalls}`,
+    );
+  }
   let total = 0;
   for (let i = 0; i < numCalls; i++) {
     total += getTierPrice(startCount + i, priority).pricePerCall;
   }
   return Math.round(total * 1e6) / 1e6; // round to 6 decimals (USDC precision)
 }
+
+/**
+ * snake_case alias for the exact signature in Issue #1's acceptance criteria:
+ * `get_tier_price(call_count, priority_flag)`.
+ */
+export const get_tier_price = getTierPrice;
