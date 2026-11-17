@@ -1,0 +1,1 @@
+Add logic to award 5 free credits to the referrer when a successful referral occurs.

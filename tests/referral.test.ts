@@ -1,0 +1,1 @@
+Add tests to verify the correct calculation of tier prices and rewards.
